@@ -1,6 +1,5 @@
 import json
 from datadase.models import Product, Category, Costumer
-from datadase.db import session
 from sqlalchemy.orm import sessionmaker, Session
 from typing import Dict, Any
 
@@ -9,6 +8,7 @@ def load_data_from_json(file_path: str) -> Dict[str, Any]:
     """Загружает данные из JSON файла"""
     with open(file_path, 'r', encoding='utf-8') as file:
         return json.load(file)
+
 
 def import_data_to_database(session: Session, data: Dict[str, Any]):
     """Импортирует данные в базу данных"""
@@ -55,13 +55,9 @@ def import_data_to_database(session: Session, data: Dict[str, Any]):
                 name=product_data['name'],
                 url=product_data['url'],
                 image=product_data.get('image'),
-                image_alt=product_data.get('image_alt'),
                 price=product_data['price'],
                 unit=product_data.get('unit'),
                 product_id=product_data['product_id'],
-                total_price=product_data.get('total_price'),
-                category_url=product_data['category_url'],
-                category_name=product_data['category_name'],
                 article=product_data.get('article'),
                 description=product_data.get('description'),
                 full_description=product_data.get('full_description'),

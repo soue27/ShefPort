@@ -3,14 +3,10 @@ from sqlalchemy import create_engine, Column, Integer, String, Float, Text, Fore
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker, Mapped
 import json
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional, TYPE_CHECKING
 from datetime import datetime
 
 Base = declarative_base()
-
-# For type checking compatibility
-DECLARATIVE_BASE = Base
-
 
 class AbstractBase(Base):
     """Абстрактная базовая модель"""
@@ -51,13 +47,15 @@ class Product(AbstractBase):
     weight = Column(String(100))
     calories = Column(String(100))
     nutrition_facts = Column(Text)  # Будем хранить как JSON строку
-
     # Внешний ключ для связи с категорией
     category_id = Column(Integer, ForeignKey('categories.id'))
 
     # Связь с категорией
     category = relationship("Category", back_populates="products")
-
+    
+    # Связь с элементами корзины
+    cart_items = relationship("CartItems", back_populates="product")
+    
     def __repr__(self):
         return f"<Product(id={self.id}, name='{self.name}', price={self.price})>"
 
@@ -79,17 +77,37 @@ class Costumer(AbstractBase):
         return f"<TelegramContact(user_id={self.tg_id}, username={self.username})>"
 
 
+# Define CartItems before Cart to avoid forward reference issues
+class CartItems(AbstractBase):
+    __tablename__ = 'cart_items'
+    
+    cart_id = Column(Integer, ForeignKey('carts.id'), nullable=False)
+    product_id = Column(Integer, ForeignKey('products.id'), nullable=False)
+    quantity = Column(Integer, nullable=False, default=1)
+    unit_price = Column(Float, nullable=False)
+    
+    # Relationships
+    cart = relationship("Cart", back_populates="items")
+    product = relationship("Product", back_populates="cart_items")
+    
+    @property
+    def total_price(self):
+        """Общая цена за позицию (цена * количество)"""
+        return self.unit_price * self.quantity
+        
+    def __repr__(self):
+        return f"<CartItem(id={self.id}, product_id={self.product_id}, quantity={self.quantity})>"
+
+
 class Cart(AbstractBase):
     __tablename__ = 'carts'
     user_id = Column(Integer, ForeignKey('costumers.id'), nullable=False)
     name = Column(String(100), default="Основная корзина")  # Название корзины
     is_active = Column(Boolean, default=True)  # Активная корзина
 
-    # Связь с пользователем
+    # Relationships
     user = relationship("Costumer", back_populates="carts")
-
-    # Связь один-ко-многим с элементами корзины
-    items = relationship("CartItem", back_populates="cart", cascade="all, delete-orphan")
+    items = relationship("CartItems", back_populates="cart", cascade="all, delete-orphan")
 
     @property
     def total_amount(self):
@@ -104,27 +122,6 @@ class Cart(AbstractBase):
     def __repr__(self):
         return f"<Cart(id={self.id}, user_id={self.user_id}, items={len(self.items)})>"
 
-
-class CartItems(AbstractBase):
-    __tablename__ = 'cart_items'
-    cart_id = Column(Integer, ForeignKey('carts.id'), nullable=False)
-    product_id = Column(Integer, ForeignKey('products.id'), nullable=False)
-    quantity = Column(Integer, nullable=False, default=1)
-    unit_price = Column(Float, nullable=False)  # Цена за единицу на момент добавления
-
-    # Связь с корзиной
-    cart = relationship("Cart", back_populates="items")
-
-    # Связь с товаром
-    product = relationship("Product", back_populates="cart_items")
-
-    @property
-    def total_price(self):
-        """Общая цена за позицию (цена * количество)"""
-        return self.unit_price * self.quantity
-
-    def __repr__(self):
-        return f"<CartItem(id={self.id}, product='{self.product.name}', quantity={self.quantity}, total={self.total_price})>"
 
 
 
