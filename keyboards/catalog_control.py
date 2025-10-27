@@ -1,3 +1,8 @@
+"""Module keyboards.catalog_control
+
+This module contains functions for creating keyboard layouts for catalog navigation.
+
+"""
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 

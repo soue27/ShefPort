@@ -1,3 +1,8 @@
+"""Module handlers.product_helpers
+
+This module contains helper functions for product handling.
+
+"""
 import asyncio
 from datadase.db import get_products_by_category
 from keyboards.product_cards import create_product_card_keyboard

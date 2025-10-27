@@ -1,3 +1,9 @@
+"""
+Модуль datadase.models
+
+Содержит определения таблиц для хранения данных в базе данных.
+
+"""
 from sqlalchemy import create_engine, Column, Integer, String, Float, Text, ForeignKey, DateTime, func, BigInteger, \
     Boolean
 from sqlalchemy.orm import declarative_base

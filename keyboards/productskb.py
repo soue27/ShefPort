@@ -1,3 +1,8 @@
+"""Module keyboards.productskb
+
+This module contains functions for creating keyboard layouts for product navigation.
+
+"""
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 

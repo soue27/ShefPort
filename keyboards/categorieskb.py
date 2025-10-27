@@ -1,3 +1,8 @@
+"""Module keyboards.categorieskb
+
+This module contains functions for creating keyboard layouts for category navigation.
+
+"""
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 

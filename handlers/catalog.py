@@ -1,3 +1,9 @@
+"""
+Module handlers.catalog
+
+This module contains handlers for catalog navigation.
+
+"""
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from sqlalchemy.ext.asyncio import AsyncSession

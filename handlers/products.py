@@ -1,10 +1,11 @@
+"""Module handlers.products
+
+This module contains handlers for product interactions.
+
+"""
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from handlers.product_helpers import send_products_batch, start_category_products
-from datadase.db import get_products_by_category
-from keyboards.catalog_control import create_pause_keyboard
 
 router = Router(name='products_router')
 

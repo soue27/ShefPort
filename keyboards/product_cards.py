@@ -1,3 +1,8 @@
+"""Module keyboards.product_cards
+
+This module contains functions for creating keyboard layouts for product cards.
+
+"""
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 

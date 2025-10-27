@@ -1,3 +1,8 @@
+"""Module keyboards.startkb
+
+This module contains functions for creating keyboard layouts for the start menu.
+
+"""
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardMarkup, InlineKeyboardButton
 
 
