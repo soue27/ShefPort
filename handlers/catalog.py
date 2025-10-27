@@ -1,0 +1,96 @@
+from aiogram import Router, F
+from aiogram.types import Message, CallbackQuery
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
+
+from handlers.product_helpers import send_products_batch, start_category_products
+from datadase.db import get_products_by_category, session
+from keyboards.catalog_control import create_pause_keyboard
+
+router = Router(name='catalog_router')
+
+
+# Обработчики навигации по каталогу
+@router.callback_query(F.data.startswith("catalog_continue_"))
+async def handle_continue_catalog(callback: CallbackQuery):
+    """Обработчик продолжения просмотра каталога"""
+    _, _, category_id, offset = callback.data.split("_")
+    category_id = int(category_id)
+    offset = int(offset)
+
+    # Удаляем старое сообщение с контролем
+    await callback.message.delete()
+
+    # Получаем товары и показываем следующую порцию
+    products = get_products_by_category(session, category_id)
+    await send_products_batch(callback.message, products, category_id, offset)
+
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("catalog_pause_"))
+async def handle_pause_catalog(callback: CallbackQuery):
+    """Обработчик паузы в просмотре каталога"""
+    _, _, category_id, offset = callback.data.split("_")
+
+    pause_keyboard = create_pause_keyboard(int(category_id), int(offset))
+
+    await callback.message.edit_text(
+        "⏸️ <b>Просмотр приостановлен</b>\n\n"
+        "Вы можете продолжить просмотр когда будете готовы",
+        parse_mode="HTML",
+        reply_markup=pause_keyboard.as_markup()
+    )
+
+    await callback.answer("Просмотр приостановлен")
+
+
+@router.callback_query(F.data == "catalog_close")
+async def handle_close_catalog(callback: CallbackQuery):
+    """Обработчик закрытия каталога"""
+    await callback.message.delete()
+    await callback.message.answer(
+        "👋 <b>Просмотр товаров завершен</b>\n"
+        "Возвращайтесь в любое время!",
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "catalog_change_category")
+async def handle_change_category(callback: CallbackQuery):
+    """Обработчик смены категории"""
+    await callback.message.edit_text(
+        "🔄 <b>Возврат к выбору категории</b>\n"
+        "Используйте команду /categories для выбора новой категории",
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("catalog_skip_"))
+async def handle_skip_products(callback: CallbackQuery, session: Session):
+    """Обработчик пропуска товаров"""
+    _, _, category_id, offset = callback.data.split("_")
+    category_id = int(category_id)
+    offset = int(offset)
+
+    # Удаляем старое сообщение с контролем
+    await callback.message.delete()
+
+    # Получаем товары и показываем следующую порцию после пропуска
+    products = get_products_by_category(session, category_id)
+    await send_products_batch(callback.message, products, category_id, offset)
+
+    await callback.answer("🚀 Пропущено 20 товаров")
+
+
+@router.callback_query(F.data == "catalog_complete")
+async def handle_catalog_complete(callback: CallbackQuery):
+    """Обработчик завершения просмотра всех товаров"""
+    await callback.message.edit_text(
+        "🎉 <b>Поздравляем! Вы просмотрели все товары в этой категории!</b>\n\n"
+        "Можете выбрать другую категорию или вернуться позже.",
+        parse_mode="HTML"
+    )
+    await callback.answer()
