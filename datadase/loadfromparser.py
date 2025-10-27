@@ -1,6 +1,13 @@
+"""
+Модуль для загрузки данных из JSON файла в базу данных.
+
+Содержит функцию load_data_from_json для загрузки данных из JSON файла
+и функцию import_data_to_database для импорта данных в базу данных.
+
+"""
 import json
-from datadase.models import Product, Category, Costumer
-from sqlalchemy.orm import sessionmaker, Session
+from datadase.models import Product, Category
+from sqlalchemy.orm import Session
 from typing import Dict, Any
 
 

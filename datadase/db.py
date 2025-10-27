@@ -9,7 +9,7 @@ It also provides a function for saving user data to database.
 
 """
 from datetime import datetime
-
+from sqlalchemy import select, func
 from aiogram.types import Message, CallbackQuery
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -55,6 +55,36 @@ def save_costumer(session: Session, callback: CallbackQuery, news: bool):
             costumer.news = news
             costumer.updated_at = datetime.now()
             ses.commit()
+
+
+def get_random_photo(session: Session):
+    """
+    Returns a random photo from the database. Для старта диалога с ботом.
+    """
+    stmt = select(Product).order_by(func.random()).limit(1)
+    result = session.scalar(stmt)
+    session.close()
+    return result.main_image, result.name
+
+
+def get_all_categories(session: Session):
+    """
+    Returns a list all category from the database.
+    """
+    stmt = select(Category.name, Category.id).order_by(Category.id)
+    result = session.execute(stmt).all()
+    session.close()
+    return result
+
+
+def get_products_by_category(session: Session, category_id: int):
+    """
+    Returns a list of products from the database by category id.
+    """
+    stmt = select(Product).where(Product.category_id == category_id)
+    result = session.scalars(stmt).all()
+    session.close()
+    return result
 
 
 

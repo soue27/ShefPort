@@ -123,6 +123,17 @@ class Cart(AbstractBase):
         return f"<Cart(id={self.id}, user_id={self.user_id}, items={len(self.items)})>"
 
 
+class News(AbstractBase):
+    __tablename__ = 'news'
+    title = Column(String(100), nullable=True)
+    post = Column(Text)
+    url = Column(String(100), nullable=True)
+
+    def __repr__(self):
+        return f"<News(id={self.id}, title={self.title}, url={self.url})>"
+
+
+
 
 
 

@@ -10,7 +10,7 @@ from data.config import BOT_TOKEN, DB_URL, ECHO
 from datadase.db import session
 from datadase.loadfromparser import load_data_from_json, import_data_to_database
 from datadase.models import Base, Product, Category
-from handlers import user_start
+from handlers import user_start, costumer
 
 
 async def main():
@@ -34,6 +34,7 @@ async def main():
     bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
     dp.include_router(user_start.router)
+    dp.include_router(costumer.router)
     logger.info("Бот запущен")
     print(DB_URL)
     print(BOT_TOKEN)
