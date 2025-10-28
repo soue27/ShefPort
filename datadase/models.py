@@ -110,6 +110,9 @@ class Cart(AbstractBase):
     user_id = Column(Integer, ForeignKey('costumers.id'), nullable=False)
     name = Column(String(100), default="Основная корзина")  # Название корзины
     is_active = Column(Boolean, default=True)  # Активная корзина
+    is_done = Column(Boolean, default=False)  # Отметка о там, что сбор корзины закончен
+    is_issued = Column(Boolean, default=False)  # Отметка о там, что товар из корзины выдан
+
 
     # Relationships
     user = relationship("Costumer", back_populates="carts")
