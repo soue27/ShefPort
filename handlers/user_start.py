@@ -10,7 +10,7 @@
     - Изменяет значение поля "news" в модели Costumer на True или False в зависимости от данных callback запроса.
 
 """
-""""""
+
 
 from aiogram import Router, F, types
 from aiogram.types import Message

@@ -5,11 +5,10 @@ This module contains handlers for catalog navigation.
 
 """
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
-from sqlalchemy.ext.asyncio import AsyncSession
+from aiogram.types import  CallbackQuery
 from sqlalchemy.orm import Session
 
-from handlers.product_helpers import send_products_batch, start_category_products
+from handlers.product_helpers import send_products_batch
 from datadase.db import get_products_by_category, session
 from keyboards.catalog_control import create_pause_keyboard
 

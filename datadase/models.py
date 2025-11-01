@@ -4,13 +4,10 @@
 Содержит определения таблиц для хранения данных в базе данных.
 
 """
-from sqlalchemy import create_engine, Column, Integer, String, Float, Text, ForeignKey, DateTime, func, BigInteger, \
+from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, DateTime, func, BigInteger, \
     Boolean
 from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker, Mapped
-import json
-from typing import Dict, List, Any, Optional, TYPE_CHECKING
-from datetime import datetime
+from sqlalchemy.orm import relationship
 
 Base = declarative_base()
 

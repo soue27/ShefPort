@@ -10,15 +10,14 @@ It also provides a function for saving user data to database.
 """
 import re
 from datetime import datetime
-from typing import List
 
-from sqlalchemy import select, func, or_
-from aiogram.types import Message, CallbackQuery
+from sqlalchemy import select, func
+from aiogram.types import CallbackQuery
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from data.config import DB_URL, ECHO
-from datadase.models import Base, Costumer, Cart, CartItems, Product, Category
+from datadase.models import Base, Costumer, Product, Category
 from services.search import normalize_text
 
 
@@ -29,9 +28,10 @@ connect = engine.connect()
 
 TOKEN_RE = re.compile(r"[а-яё]+", re.IGNORECASE)
 
+
 def save_costumer(session: Session, callback: CallbackQuery, news: bool):
     """
-    Saves user data to database.
+    Saves costumer data to database.
 
     If user is not found, creates a new Costumer object and saves it to database.
     If user is found, updates user's news field and saves it to database.
@@ -68,13 +68,17 @@ def get_random_photo(session: Session):
     """
     stmt = select(Product).order_by(func.random()).limit(1)
     result = session.scalar(stmt)
-    session.close()
     return result.main_image, result.name
 
 
 def get_all_categories(session: Session):
     """
-    Returns a list all category from the database.
+    Fetches all categories from the database.
+
+    :param session: SQLAlchemy session for database operations
+    :type session: Session
+    :return: List of tuples containing category names and their IDs
+    :rtype: list[tuple[str, int]]
     """
     stmt = select(Category.name, Category.id).order_by(Category.id)
     result = session.execute(stmt).all()
@@ -84,7 +88,14 @@ def get_all_categories(session: Session):
 
 def get_products_by_category(session: Session, category_id: int):
     """
-    Returns a list of products from the database by category id.
+    Fetches all products belonging to a specific category.
+
+    :param session: SQLAlchemy session for database operations
+    :type session: Session
+    :param category_id: ID of the category to filter products by
+    :type category_id: int
+    :return: List of Product objects matching the category
+    :rtype: list[Product]
     """
     stmt = select(Product).where(Product.category_id == category_id)
     result = session.scalars(stmt).all()
@@ -98,8 +109,15 @@ def tokenize(text: str):
 
 def search_products(session: Session, query: str) -> list:
     """
-    Поиск по существующему полю Product.name (не меняя БД),
-    нечувствительно к регистру, учитывает все словоформы.
+    Performs a search in the Product.name field (without modifying the database),
+    case-insensitive and accounting for all word forms.
+
+    :param session: SQLAlchemy session for database operations
+    :type session: Session
+    :param query: Search query string
+    :type query: str
+    :return: List of Product objects matching the search query
+    :rtype: list[Product]
     """
     query_forms = normalize_text(query)
     results = []

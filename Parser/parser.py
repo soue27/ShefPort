@@ -8,7 +8,14 @@ import json
 import csv
 from urllib.parse import urljoin
 
-def get_categories_requests():
+def get_categories_requests() -> list[dict]:
+    """
+    Fetches and parses all product categories from the main catalog page.
+
+    :return: List of dictionaries containing category information (name, url)
+    :rtype: list[dict[str, str]]
+    :raises requests.RequestException: If there's an error making the HTTP request
+    """
     headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
@@ -37,9 +44,15 @@ def get_categories_requests():
     return categories
 
 
-def parse_products_from_category(base_url):
+def parse_products_from_category(base_url: str) -> list[dict]:
     """
-    Парсит все товары из категории с учетом пагинации
+    Parses all products from a category, handling pagination.
+
+    :param base_url: Base URL of the category to parse
+    :type base_url: str
+    :return: List of product dictionaries with parsed data
+    :rtype: list[dict]
+    :raises requests.RequestException: If there's an error making HTTP requests
     """
     all_products = []
     page = 1
@@ -92,9 +105,16 @@ def parse_products_from_category(base_url):
     return all_products
 
 
-def parse_products_from_page(soup, base_url):
+def parse_products_from_page(soup: BeautifulSoup, base_url: str) -> list[dict]:
     """
-    Парсит товары с одной страницы
+    Parses product data from a single category page.
+
+    :param soup: BeautifulSoup object containing the page HTML
+    :type soup: BeautifulSoup
+    :param base_url: Base URL for resolving relative URLs
+    :type base_url: str
+    :return: List of product dictionaries with parsed data
+    :rtype: list[dict]
     """
     products = []
 
@@ -172,9 +192,14 @@ def parse_products_from_page(soup, base_url):
     return products
 
 
-def extract_price(price_text):
+def extract_price(price_text: str) -> float:
     """
-    Извлекает числовое значение цены из текста
+    Extracts numeric price from price text.
+
+    :param price_text: Raw price text (may include currency symbols, spaces, etc.)
+    :type price_text: str
+    :return: Extracted price as float, or None if extraction fails
+    :rtype: float or None
     """
     try:
         # Убираем все нецифровые символы, кроме точек и запятых
@@ -186,9 +211,14 @@ def extract_price(price_text):
         return None
 
 
-def has_next_page(soup):
+def has_next_page(soup: BeautifulSoup) -> bool:
     """
-    Проверяет наличие следующей страницы
+    Checks if there are more pages to parse in the pagination.
+
+    :param soup: BeautifulSoup object of the current page
+    :type soup: BeautifulSoup
+    :return: True if there are more pages, False otherwise
+    :rtype: bool
     """
     # Ищем элементы пагинации
     next_button = soup.find('a', string=['>', 'Далее', 'Next'])
@@ -211,13 +241,15 @@ def has_next_page(soup):
     return False
 
 
-def save_products_to_csv(products, filename='oysters_products.csv'):
+def save_products_to_csv(products: list[dict], filename: str = 'oysters_products.csv') -> None:
     """
-    Сохраняет список товаров в CSV файл
+    Saves a list of products to a CSV file.
 
-    Args:
-        products (list): Список словарей с данными товаров
-        filename (str): Название файла для сохранения
+    :param products: List of product dictionaries to save
+    :type products: list[dict]
+    :param filename: Name of the output CSV file
+    :type filename: str
+    :return: None
     """
     if not products:
         print("Нет данных для сохранения")
@@ -241,9 +273,15 @@ def save_products_to_csv(products, filename='oysters_products.csv'):
     print(f"Сохранено {len(products)} товаров в файл {filename}")
 
 
-def save_products_to_json(products, filename='moreproduktyi_products.json'):
+def save_products_to_json(products: list[dict], filename: str = 'moreproduktyi_products.json') -> None:
     """
-    Сохраняет товары в JSON файл
+    Saves a list of products to a JSON file.
+
+    :param products: List of product dictionaries to save
+    :type products: list[dict]
+    :param filename: Name of the output JSON file
+    :type filename: str
+    :return: None
     """
     with open(filename, 'w', encoding='utf-8') as file:
         json.dump(products, file, ensure_ascii=False, indent=2)
@@ -251,8 +289,17 @@ def save_products_to_json(products, filename='moreproduktyi_products.json'):
     print(f"Сохранено {len(products)} товаров в файл {filename}")
 
 
-def create_complete_catalog_json(categories, products):
-    """Создает полный JSON каталог"""
+def create_complete_catalog_json(categories: list[dict], products: list[dict]) -> dict:
+    """
+    Creates a complete catalog JSON structure with metadata.
+
+    :param categories: List of category dictionaries
+    :type categories: list[dict]
+    :param products: List of product dictionaries
+    :type products: list[dict]
+    :return: Complete catalog dictionary with metadata
+    :rtype: dict
+    """
 
     # Добавляем счетчики товаров в категории
     for category in categories:
@@ -274,8 +321,17 @@ def create_complete_catalog_json(categories, products):
     return catalog
 
 
-def save_catalog_to_json(catalog, filename=None):
-    """Сохраняет каталог в JSON файл"""
+def save_catalog_to_json(catalog: dict, filename: str = None) -> str:
+    """
+    Saves a catalog dictionary to a JSON file.
+
+    :param catalog: Catalog dictionary to save
+    :type catalog: dict
+    :param filename: Output filename (if None, generates a timestamped name)
+    :type filename: str, optional
+    :return: Name of the saved file
+    :rtype: str
+    """
     if filename is None:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"chefport_catalog_{timestamp}.json"

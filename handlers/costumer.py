@@ -2,28 +2,16 @@
 Module handlers.costumer
 
 This module contains handlers for costumer interactions.
-
 """
-import asyncio
-from email import message_from_string
-
 from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message
-from aiogram.filters import CommandStart
-from sqlalchemy.orm import Session
 
-from datadase.db import (session, save_costumer, get_random_photo, get_all_categories,
-                         get_products_by_category, search_products)
-
-from loguru import logger
+from datadase.db import session, get_all_categories, search_products
 
 from handlers.product_helpers import start_category_products, send_product_card
-from keyboards.catalog_control import create_control_keyboard
 from keyboards.categorieskb import get_categories_kb
-from keyboards.product_cards import create_product_card_keyboard
-from keyboards.productskb import get_products_kb
 
 router = Router(name='costumer')
 
