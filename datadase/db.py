@@ -21,7 +21,7 @@ from data.config import DB_URL, ECHO
 from datadase.models import Base, Costumer, Cart, CartItems, Product, Category
 from services.search import normalize_text
 
-print(DB_URL)
+
 engine = create_engine(DB_URL, echo=ECHO)
 Base.metadata.create_all(engine)
 session = Session(engine)

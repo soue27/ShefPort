@@ -28,7 +28,6 @@ async def send_product_card(message, product, index=None, total=None):
 
         # Оптимизация изображения
         optimized_image = product.image
-        print(optimized_image)
         keyboard = create_product_card_keyboard(product.id)
 
         # Отправка карточки

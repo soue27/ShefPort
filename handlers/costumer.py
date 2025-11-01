@@ -32,7 +32,7 @@ class SearchProduct(StatesGroup):
     search_word = State()
 
 
-@router.message(F.text == 'Категории товаров')
+@router.message(F.text == '🐠 Категории товаров')
 async def show_categories(message: Message):
     """Обработка кнопки Выбора категории, выводит на экран клавиатуру с категориями"""
     categories = get_all_categories(session)
@@ -47,7 +47,7 @@ async def show_product_bycategory(callback: types.CallbackQuery):
     await callback.answer()
 
 
-@router.message(F.text == 'Поиск товара')
+@router.message(F.text == '🔎 Поиск товара')
 async def show_search(message: Message, state: FSMContext):
     """Обработка кнопки Поиск, выводит на экран клавиатуру с категориями"""
     await message.answer(text="Введите наименование товара или запрос:")
@@ -57,6 +57,10 @@ async def show_search(message: Message, state: FSMContext):
 @router.message(SearchProduct.search_word)
 async def get_search(message: Message, state: FSMContext):
     products = search_products(session=session, query=message.text)
+    if not products:
+        await message.answer(f"К сожалению товар {message.text} не найден, уточните название для поиска!")
+        await state.set_state(SearchProduct.search_word)
+        return
     await message.answer(f'Найдено {len(products)} товаров')
     for product in products:
         await send_product_card(message, product)
