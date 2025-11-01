@@ -8,14 +8,18 @@ It creates a database engine, creates all tables in database and provides a sess
 It also provides a function for saving user data to database.
 
 """
+import re
 from datetime import datetime
-from sqlalchemy import select, func
+from typing import List
+
+from sqlalchemy import select, func, or_
 from aiogram.types import Message, CallbackQuery
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from data.config import DB_URL, ECHO
 from datadase.models import Base, Costumer, Cart, CartItems, Product, Category
+from services.search import normalize_text
 
 print(DB_URL)
 engine = create_engine(DB_URL, echo=ECHO)
@@ -23,6 +27,7 @@ Base.metadata.create_all(engine)
 session = Session(engine)
 connect = engine.connect()
 
+TOKEN_RE = re.compile(r"[а-яё]+", re.IGNORECASE)
 
 def save_costumer(session: Session, callback: CallbackQuery, news: bool):
     """
@@ -87,7 +92,21 @@ def get_products_by_category(session: Session, category_id: int):
     return result
 
 
+def tokenize(text: str):
+    return TOKEN_RE.findall(text)
 
 
+def search_products(session: Session, query: str) -> list:
+    """
+    Поиск по существующему полю Product.name (не меняя БД),
+    нечувствительно к регистру, учитывает все словоформы.
+    """
+    query_forms = normalize_text(query)
+    results = []
+    for product in session.query(Product).all():
+        name_forms = normalize_text(product.name)
+        if query_forms & name_forms:  # есть пересечение
+            results.append(product)
+    return results
 
 

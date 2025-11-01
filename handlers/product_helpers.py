@@ -5,6 +5,7 @@ This module contains helper functions for product handling.
 """
 import asyncio
 from datadase.db import get_products_by_category
+from datadase.models import Product
 from keyboards.product_cards import create_product_card_keyboard
 from keyboards.catalog_control import create_control_keyboard
 

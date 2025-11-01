@@ -12,7 +12,7 @@ router = Router(name='products_router')
 
 # Обработчики действий с товарами
 @router.callback_query(F.data.startswith("add_to_cart_"))
-async def handle_add_to_cart(callback: CallbackQuery, session: AsyncSession):
+async def handle_add_to_cart(callback: CallbackQuery):
     """Обработчик добавления товара в корзину"""
     product_id = int(callback.data.split("_")[3])
 
