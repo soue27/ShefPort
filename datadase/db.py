@@ -128,3 +128,19 @@ def search_products(session: Session, query: str) -> list:
     return results
 
 
+def get_product_description(session: Session, product_id: int) -> Product:
+    """
+    Fetches the description of a specific product.
+
+    :param session: SQLAlchemy session for database operations
+    :type session: Session
+    :param product_id: ID of the product to fetch description for
+    :type product_id: int
+    :return: Description of the product
+    :rtype: str
+    """
+    product = session.query(Product.name, Product.image,Product.description,
+                            Product.characteristics).filter(Product.id == product_id).first()
+    return product
+
+

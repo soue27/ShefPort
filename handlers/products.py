@@ -7,6 +7,9 @@ from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from datadase.db import get_product_description, session
+from services.search import clean_description
+
 router = Router(name='products_router')
 
 
@@ -24,11 +27,14 @@ async def handle_add_to_cart(callback: CallbackQuery):
     await callback.answer("✅ Товар добавлен в корзину!")
 
 
-@router.callback_query(F.data.startswith("add_favorite_"))
+@router.callback_query(F.data.startswith("description_"))
 async def handle_add_favorite(callback: CallbackQuery):
-    """Обработчик добавления в избранное"""
-    product_id = int(callback.data.split("_")[2])
-    await callback.answer("💖 Товар добавлен в избранное!")
+    """Обработчик вывода на экран описания товара"""
+    product_id = int(callback.data.split("_")[1])
+    product = get_product_description(session, product_id)
+    description = clean_description(product.description)
+    await callback.message.answer_photo(photo=product.image, caption=product.name)
+    await callback.message.answer(text= description, parse_mode="HTML")
 
 
 @router.callback_query(F.data.startswith("quick_order_"))

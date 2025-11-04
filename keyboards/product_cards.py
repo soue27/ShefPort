@@ -22,8 +22,8 @@ def create_product_card_keyboard(product_id: int):
         callback_data=f"add_to_cart_{product_id}"
     )
     builder.button(
-        text="💖 В избранное",
-        callback_data=f"add_favorite_{product_id}"
+        text="📰 Описание",
+        callback_data=f"description_{product_id}"
     )
     builder.button(
         text="⚡ Быстрый заказ",
