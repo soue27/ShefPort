@@ -3,6 +3,8 @@
 This module contains handlers for product interactions.
 
 """
+import json
+
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -33,6 +35,12 @@ async def handle_add_favorite(callback: CallbackQuery):
     product_id = int(callback.data.split("_")[1])
     product = get_product_description(session, product_id)
     description = clean_description(product.description)
+    print(len(product.characteristics), product.characteristics)
+    if len(product.characteristics) > 2:
+        description += "\nХарактеристики:"
+        opisan = json.loads(product.characteristics)
+        for k, v in opisan.items():
+            description += f"\n {k} - {v}"
     await callback.message.answer_photo(photo=product.image, caption=product.name)
     await callback.message.answer(text= description, parse_mode="HTML")
 

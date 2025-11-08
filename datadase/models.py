@@ -50,6 +50,7 @@ class Product(AbstractBase):
     weight = Column(String(100))
     calories = Column(String(100))
     nutrition_facts = Column(Text)  # Будем хранить как JSON строку
+    ostatok = Column(Float)
     # Внешний ключ для связи с категорией
     category_id = Column(Integer, ForeignKey('categories.id'))
 
