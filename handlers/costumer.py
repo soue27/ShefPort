@@ -4,12 +4,12 @@ Module handlers.costumer
 This module contains handlers for customer interactions in the Telegram bot.
 It handles product categories display, product search, and related commands.
 """
-from aiogram import Router, F, types
+from aiogram import Router, F, types, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message
 
-from datadase.db import session, get_all_categories, search_products
+from datadase.db import session, get_all_categories, search_products, save_question, get_all_admin
 
 from handlers.product_helpers import start_category_products
 from handlers.search_helpers import (
@@ -121,12 +121,30 @@ register_search_handlers(router)
 
 @router.message(F.text == '📝 Написать сообщение')
 async def send_message(message: Message, state: FSMContext):
+    """Обраьотка кнопки Напистаь сообщение, запуск FSM
+     :param """
     await message.answer("Введите Ваше сообщение:")
     await state.set_state(SendMessage.user_message)
 
 
 @router.message(SendMessage.user_message)
-async def get_message(message: Message, state: FSMContext):
-    print(message.chat.id, message.from_user.id, message.message_id)
+async def get_message(message: Message, state: FSMContext, bot: Bot):
+    """
+    Processes the user's message and saves it to the database.
+
+    Args:
+        message (Message): The incoming message from the user.
+        state (FSMContext): The current state of the conversation.
+        bot
+
+    Returns:
+        None: Saves the message to the database and sends a confirmation message to the user.
+    """
+    print (message.from_user.id, message.message_id, message.text)
+    save_question(session, message.from_user.id, message.message_id, message.text)
+    await message.answer(f"Спасибо, за Ваше сообщение. Мы ответим в ближайшее время!")
+    admins = get_all_admin(session)
+    for admin in admins:
+        await bot.send_message(chat_id=admin, text=f"Получено сообщение от {message.from_user.full_name}: {message.text[:20]}")
     await state.clear()
 

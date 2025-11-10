@@ -10,14 +10,16 @@ It also provides a function for saving user data to database.
 """
 import re
 from datetime import datetime
+from typing import Type, Optional, List, Any
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select, func
 from aiogram.types import CallbackQuery
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, DeclarativeBase
 
 from data.config import DB_URL, ECHO
-from datadase.models import Base, Costumer, Product, Category
+from datadase.models import Base, Costumer, Product, Category, Question
 from services.search import normalize_text
 
 
@@ -152,5 +154,122 @@ def is_admin(session: Session, user_id: int):
     stmt = select(Costumer.is_admin).where(Costumer.tg_id == user_id)
     result = session.scalar(stmt)
     return result
+
+
+def get_costumer_id(session: Session, user_id: int):
+    """
+    Fetches the ID of a specific costumer.
+
+    :param session: SQLAlchemy session for database operations
+    :param user_id: ID of the costumer to fetch ID for
+    :return: ID of the costumer
+    """
+    stmt = select(Costumer.id).where(Costumer.tg_id == user_id)
+    result = session.scalar(stmt)
+    return result
+
+
+def save_question(session: Session, user_id: int, mess_id: int, text: str):
+    """
+    Saves a question to the database.
+
+    :param session: SQLAlchemy session for database operations
+    :param user_id: ТГ ID of the user who asked the question
+    :param mess_id: ID of the question in Telegram
+    :param text: Text of the question
+    :return: None
+    """
+    with session as ses:
+        question = Question(user_id=user_id, questions_id=mess_id, text=text)
+        ses.add(question)
+        ses.commit()
+
+
+def get_all_questions(session: Session):
+    """
+    Fetches all questions from the database.
+
+    :param session: SQLAlchemy session for database operations
+    :return: List of Question objects
+    """
+    stmt = select(Question).order_by(Question.id)
+    result = session.scalars(stmt).all()
+    return result
+
+
+def get_new_questions(session: Session):
+    """
+    Fetches all new questions from the database.
+
+    :param session: SQLAlchemy session for database operations
+    :return: List of Question objects
+    """
+    stmt = select(Question).where(Question.is_answered == False).order_by(Question.id)
+    result = session.scalars(stmt).all()
+    return result
+
+
+def get_question_by_id(session: Session, question_id: int):
+    """
+    Fetches a specific question from the database.
+
+    :param session: SQLAlchemy session for database operations
+    :param question_id: ID of the question to fetch
+    :return: Question object
+    """
+    stmt = select(Question).where(Question.id == question_id)
+    result = session.scalar(stmt)
+    return result
+
+
+def count_model_records(session, model: Type[DeclarativeBase], filters: Optional[List[Any]] = None) -> int:
+    """
+    Универсальная функция для подсчета количества записей в таблице модели с поддержкой фильтров
+
+    Args:
+        session: SQLAlchemy session
+        model: Класс модели SQLAlchemy
+        filters: Список условий фильтрации (например, [User.is_active == False])
+
+    Returns:
+        int: Количество записей в таблице, соответствующих фильтрам
+    filters=[User.is_active == False]
+    filters=[Post.is_published == False]
+    filters=[
+            User.is_active == False,
+            User.created_at < thirty_days_ago
+        ]
+    """
+    stmt = select(func.count()).select_from(model)
+
+        # Применяем фильтры если они переданы
+    if filters:
+        for filter_condition in filters:
+            stmt = stmt.where(filter_condition)
+
+    count = session.execute(stmt).scalar()
+    return count or 0
+
+
+def get_all_admin(session: Session):
+    stmt = select(Costumer.tg_id).where(Costumer.is_admin == True)
+    result = session.scalars(stmt).all()
+    return result
+
+
+def save_answer(session: Session, question_id, answer_text):
+    with session as ses:
+        question = session.execute(select(Question).where(Question.id ==question_id))
+        question = question.scalar_one_or_none()
+        if not question:
+            return False
+        question.answer = answer_text
+        question.is_answered = True
+        question.answer_at = datetime.now()
+        session.commit()
+        return True
+
+
+
 
 

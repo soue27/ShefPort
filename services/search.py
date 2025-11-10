@@ -61,3 +61,29 @@ def clean_description(description: str) -> str:
         cleaned_text = cleaned_text
 
     return cleaned_text
+
+
+def plural_form(n: int, forms: tuple) -> str:
+    """
+    Функция для выбора правильной формы слова в зависимости от числа
+
+    Args:
+        n: число
+        forms: кортеж из трех форм (для 1, для 2-4, для 5-0)
+
+    Returns:
+        str: правильная форма слова
+    """
+    n = abs(n) % 100
+
+    if 11 <= n <= 19:
+        return forms[2]
+
+    n = n % 10
+
+    if n == 1:
+        return forms[0]
+    elif 2 <= n <= 4:
+        return forms[1]
+    else:
+        return forms[2]

@@ -76,6 +76,7 @@ class Costumer(AbstractBase):
 
 
     carts = relationship("Cart", back_populates="user")
+    questions = relationship("Question", back_populates="user")
 
     def __repr__(self):
         return f"<TelegramContact(user_id={self.tg_id}, username={self.username})>"
@@ -151,10 +152,14 @@ class Question(AbstractBase):
         is_answered (bool): ответ на вопрос задан или нет
     """
     __tablename__ = "questions"
-    user_id = Column(Integer, ForeignKey('costumer.id'), nullable=False)
-    questions_id = Column(Integer) #Ай ди сообщания пользователя в ТГ
+    user_id = Column(Integer, ForeignKey('costumers.id'), nullable=False)
+    questions_id = Column(Integer) #Ай ди сообщания пользователя в ТГ Потом нужно исправить этот косяк
     text = Column(Text)
     is_answered = Column(Boolean, default=False)
+    answer = Column(Text, nullable=True)
+    answer_at =Column(DateTime, nullable=True)
+
+    user = relationship("Costumer", back_populates="questions")
 
     def __repr__(self):
         return f"<Question (text={self.text[:30]}, from {self.user_id}"
