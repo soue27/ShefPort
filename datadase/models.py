@@ -140,6 +140,25 @@ class News(AbstractBase):
         return f"<News(id={self.id}, title={self.title}, url={self.url})>"
 
 
+class Question(AbstractBase):
+    """
+    Модель для хранения вопросов от пользователей
+
+    Attributes:
+        user_id (int): ID пользователя, который задал вопрос
+        questions_id (int): ID вопроса
+        text (str): текст вопроса
+        is_answered (bool): ответ на вопрос задан или нет
+    """
+    __tablename__ = "questions"
+    user_id = Column(Integer, ForeignKey('costumer.id'), nullable=False)
+    questions_id = Column(Integer) #Ай ди сообщания пользователя в ТГ
+    text = Column(Text)
+    is_answered = Column(Boolean, default=False)
+
+    def __repr__(self):
+        return f"<Question (text={self.text[:30]}, from {self.user_id}"
+
 
 
 

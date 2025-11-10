@@ -32,6 +32,10 @@ class SearchProduct(StatesGroup):
     search_word = State()
 
 
+class SendMessage(StatesGroup):
+    user_message = State()
+
+
 @router.message(F.text == '🐠 Категории товаров')
 async def show_categories(message: Message):
     """
@@ -113,3 +117,16 @@ async def get_search(message: Message, state: FSMContext):
 
 # Регистрируем обработчики поиска
 register_search_handlers(router)
+
+
+@router.message(F.text == '📝 Написать сообщение')
+async def send_message(message: Message, state: FSMContext):
+    await message.answer("Введите Ваше сообщение:")
+    await state.set_state(SendMessage.user_message)
+
+
+@router.message(SendMessage.user_message)
+async def get_message(message: Message, state: FSMContext):
+    print(message.chat.id, message.from_user.id, message.message_id)
+    await state.clear()
+

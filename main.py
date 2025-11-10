@@ -8,7 +8,7 @@ import logging
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from data.config import BOT_TOKEN, DB_URL, ECHO
-from handlers import user_start, costumer, products, catalog
+from handlers import user_start, costumer, products, catalog, admin
 
 
 async def main():
@@ -35,6 +35,7 @@ async def main():
     dp.include_router(costumer.router)
     dp.include_router(products.router)
     dp.include_router(catalog.router)
+    dp.include_router(admin.router)
     logger.info("Бот запущен")
     print(DB_URL)
     print(BOT_TOKEN)

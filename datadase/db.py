@@ -133,14 +133,24 @@ def get_product_description(session: Session, product_id: int) -> Product:
     Fetches the description of a specific product.
 
     :param session: SQLAlchemy session for database operations
-    :type session: Session
     :param product_id: ID of the product to fetch description for
-    :type product_id: int
     :return: Description of the product
-    :rtype: str
     """
     product = session.query(Product.name, Product.image,Product.description,
                             Product.characteristics).filter(Product.id == product_id).first()
     return product
+
+
+def is_admin(session: Session, user_id: int):
+    """
+    Checks if a user is an admin.
+
+    :param session: SQLAlchemy session for database operations
+    :param user_id: ID of the user to check
+    :return: Boolean value indicating whether the user is an admin or not
+    """
+    stmt = select(Costumer.is_admin).where(Costumer.tg_id == user_id)
+    result = session.scalar(stmt)
+    return result
 
 
