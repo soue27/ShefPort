@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import Type, Optional, List, Any
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, ScalarResult
 from aiogram.types import CallbackQuery
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, DeclarativeBase
@@ -174,7 +174,7 @@ def save_question(session: Session, user_id: int, mess_id: int, text: str):
     Saves a question to the database.
 
     :param session: SQLAlchemy session for database operations
-    :param user_id: ТГ ID of the user who asked the question
+    :param user_id: ТГ ID of the user чей  the question
     :param mess_id: ID of the question in Telegram
     :param text: Text of the question
     :return: None
@@ -252,22 +252,30 @@ def count_model_records(session, model: Type[DeclarativeBase], filters: Optional
 
 
 def get_all_admin(session: Session):
+    """
+    Retrieve Telegram IDs of all admin users.
+    
+    Args:
+        session: SQLAlchemy session for database operations
+        
+    Returns:
+        list[int]: List of Telegram user IDs for admin users
+    """
     stmt = select(Costumer.tg_id).where(Costumer.is_admin == True)
     result = session.scalars(stmt).all()
     return result
 
 
-def save_answer(session: Session, question_id, answer_text):
-    with session as ses:
-        question = session.execute(select(Question).where(Question.id ==question_id))
-        question = question.scalar_one_or_none()
-        if not question:
-            return False
-        question.answer = answer_text
-        question.is_answered = True
-        question.answer_at = datetime.now()
-        session.commit()
-        return True
+def save_answer(session: Session, question_id, answer_text) -> bool:
+    question = session.execute(select(Question).where(Question.id ==question_id))
+    question = question.scalar_one_or_none()
+    if not question:
+        return False
+    question.answer = answer_text
+    question.is_answered = True
+    question.answer_at = datetime.now()
+    session.commit()
+    return True
 
 
 

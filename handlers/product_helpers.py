@@ -4,6 +4,9 @@ This module contains helper functions for product handling.
 
 """
 import asyncio
+
+from aiogram.types import InputFile
+
 from datadase.db import get_products_by_category
 from datadase.models import Product
 from keyboards.product_cards import create_product_card_keyboard
@@ -20,14 +23,32 @@ async def send_product_card(message, product, index=None, total=None):
         total: Общее количество товаров (для прогресса)
     """
     try:
-        # Подготовка данных
+        # Подготовка данных для описания товаров
         progress_text = f"({index}/{total})" if index and total else ""
-        description_preview = product.description[:100] + "..." if len(
-            product.description) > 100 else product.description
-        description_preview = description_preview.removeprefix("Описание")
+        if product.description:
+            description_preview = product.description[:100] + "..." if len(product.description) > 100 else product.description
+            description_preview = description_preview.removeprefix("Описание")
+        elif product.description is None or product.description == "":
+            description_preview = "Описание отсутствует"
+
+        # Подготовка данных для описания цены товара
+        if product.ostatok is None:
+            ost = "Нет в наличии"
+        elif product.unit.lower() not in ["кг", "кг."]:
+            ost = int(product.ostatok)
+        else:
+            ost = product.ostatok
+
+        if ost == "Нет в наличии":
+            output = f"Нет в наличии"
+        else:
+            output = f"В наличии: {ost} {product.unit}"
+
+
 
         # Оптимизация изображения
         optimized_image = product.image
+        photo1 = "https://chefport.ru/image/cache/placeholder-270x180.png"
         keyboard = create_product_card_keyboard(product.id)
 
         # Отправка карточки
@@ -37,22 +58,23 @@ async def send_product_card(message, product, index=None, total=None):
                 caption=f"<b>{product.name}</b> {progress_text}\n\n"
                         f"📝 {description_preview}\n"
                         f"💵 <b>Цена: {product.price} руб</b>\n"
-                        f"📦 <b>В наличии: 5000 шт</b>",
+                        f"📦 <b>{output}</b>",
                 parse_mode="HTML",
                 reply_markup=keyboard.as_markup(),
                 disable_notification=True
             )
         else:
             # Резервный вариант без изображения
-            await message.answer(
-                f"<b>{product.name}</b> {progress_text}\n\n"
-                f"📝 {description_preview}\n"
-                f"💵 <b>Цена: {product.price} руб</b>\n"
-                f"📦 <b>В наличии: 4000 шт</b>",
+            await message.answer_photo(
+                photo=photo1,
+                caption=f"<b>{product.name}</b> {progress_text}\n\n"
+                            f"📝 {description_preview}\n"
+                            f"💵 <b>Цена: {product.price} руб</b>\n"
+                            f"📦 <b>{output}</b>",
                 parse_mode="HTML",
                 reply_markup=keyboard.as_markup(),
                 disable_notification=True
-            )
+                )
 
     except Exception as e:
         print(f"Ошибка отправки карточки товара {product.id}: {e}")
@@ -61,7 +83,7 @@ async def send_product_card(message, product, index=None, total=None):
         await message.answer(
             f"<b>{product.name}</b>\n"
             f"💵 <b>Цена: {product.price} руб</b>\n"
-            f"📦 <b>В наличии: 3000 шт</b>",
+            f"📦 <b>{output}</b>",
             parse_mode="HTML",
             reply_markup=keyboard.as_markup(),
             disable_notification=True

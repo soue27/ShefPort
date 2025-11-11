@@ -18,20 +18,20 @@ class AnswerQuestion(StatesGroup):
 
 
 @router.message(Command("admin"), IsAdmin())
-async def admin_start(message: Message):
+async def admin_start(message: Message) -> None:
     """Обработка команды /admin"""
     await message.answer(f"Привет! Добро пожаловать Админ {message.from_user.full_name}", reply_markup=main_kb())
 
 
 @router.callback_query(F.data == "check_questions")
-async def show_questions(callback: CallbackQuery):
+async def show_questions(callback: CallbackQuery) -> None:
     """Обработка кнопки check_questions"""
     await callback.message.delete()
     await callback.message.answer("Сообщения:", reply_markup=check_questions())
 
 
 @router.callback_query(F.data == "new_questions")
-async def show_questions(callback: CallbackQuery):
+async def show_questions(callback: CallbackQuery) -> None:
     """Обработка кнопки просмотра новых сообщений"""
     questions = get_new_questions(session)
     print(questions)
@@ -39,7 +39,7 @@ async def show_questions(callback: CallbackQuery):
 
 
 @router.callback_query(F.data.startswith("question_"))
-async def get_answer(callback: CallbackQuery, state: FSMContext):
+async def get_answer(callback: CallbackQuery, state: FSMContext) -> None:
     questions_id = int(callback.data.split("_")[1])
     question = get_question_by_id(session, questions_id)
     #Сохранение данных в state, для передачи в следующую функцию
@@ -54,7 +54,7 @@ async def get_answer(callback: CallbackQuery, state: FSMContext):
 
 
 @router.message(AnswerQuestion.answer)
-async def handle_answer(message: Message, state: FSMContext, bot: Bot, ):
+async def handle_answer(message: Message, state: FSMContext, bot: Bot, ) -> None:
     """
     Обработка ответа админа на сообщение пользователя отправка
 
@@ -69,7 +69,7 @@ async def handle_answer(message: Message, state: FSMContext, bot: Bot, ):
     tg_id = data.get('tg_id')
     #Подготовка текста ответа
     vopros = data.get('question_text')
-    start = (f"Ответ от администрации на Ваш вопрос {vopros}:")
+    start = f"Ответ от администрации на Ваш вопрос {vopros}:"
     # Отправка ответа и сохранение ответа в БД
     await bot.send_message(chat_id=tg_id, text=start)
     await bot.send_message(chat_id=tg_id, text=f'{text_otveta}')

@@ -6,9 +6,11 @@ from aiogram.enums import ParseMode
 import logging
 
 from aiogram.fsm.storage.memory import MemoryStorage
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from data.config import BOT_TOKEN, DB_URL, ECHO
 from handlers import user_start, costumer, products, catalog, admin
+from services.mail_checker import check_mail_and_download
 
 
 async def main():
@@ -16,16 +18,6 @@ async def main():
     Main function of the bot.
     This function creates a bot instance, sets up a dispatcher and starts polling.
     """
-    # tables_to_check = [Product, Category]
-    # lets_go = 0
-    # for table in tables_to_check:
-    #     count = session.query(table).count()
-    #     print(f"Table {table.__name__} has {count} rows")
-    #     if count == 0:
-    #         lets_go += 1
-    # if lets_go == 2:
-    #     data = load_data_from_json('chefport_catalog_20251025_221204.json')
-    #     import_data_to_database(session, data)
     storage = MemoryStorage()
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
@@ -36,6 +28,15 @@ async def main():
     dp.include_router(products.router)
     dp.include_router(catalog.router)
     dp.include_router(admin.router)
+    #Ежедневный запуск опроса почты
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(
+        check_mail_and_download,
+        trigger="cron",
+        hour=21,
+        minute=0
+    )
+    scheduler.start()
     logger.info("Бот запущен")
     print(DB_URL)
     print(BOT_TOKEN)

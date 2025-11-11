@@ -7,13 +7,17 @@ requires-python = ">=3.13"
 dependencies = [
     "aiogram>=3.22.0",
     "alembic>=1.17.0",
+    "apscheduler>=3.11.1",
     "bs4>=0.0.2",
     "loguru>=0.7.3",
     "mypy>=1.18.2",
+    "openpyxl>=3.1.5",
+    "pandas>=2.3.3",
     "pymorphy3>=2.0.6",
     "python-dotenv>=1.1.1",
     "requests>=2.32.5",
     "selenium>=4.38.0",
     "setuptools>=80.9.0",
     "sqlalchemy>=2.0.44",
+    "xlrd>=2.0.2",
 ]
