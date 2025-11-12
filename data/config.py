@@ -12,5 +12,6 @@ MAIL_HOST = os.getenv('MAIL_HOST')
 MAIL_USER = os.getenv('MAIL_USER')
 MAIL_PASS = os.getenv('MAIL_PASS')
 SENDER_FILTER = os.getenv('SENDER_FILTER')
-SAVE_DIR = os.getenv('SAVE_DIR')
+READ_DIR = os.getenv('READ_DIR')
+SUPERADMIN_ID = os.getenv('SUPERADMIN_ID')
 

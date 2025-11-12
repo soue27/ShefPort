@@ -2,7 +2,12 @@ import imaplib
 import email
 import logging
 import os
-from data.config import MAIL_USER, MAIL_PASS, SENDER_FILTER, SAVE_DIR, MAIL_HOST
+
+
+from data.config import MAIL_USER, MAIL_PASS, SENDER_FILTER, READ_DIR, MAIL_HOST
+from datadase.db import session
+from handlers.admin import send_file_to_admin
+from services.db_updater import load_report, update_products_from_df
 
 # Конфигурация
 # MAIL_HOST = "imap.mail.ru"
@@ -13,19 +18,27 @@ from data.config import MAIL_USER, MAIL_PASS, SENDER_FILTER, SAVE_DIR, MAIL_HOST
 
 logger = logging.getLogger("mail_checker")
 
+# BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# SAVE_DIR = os.path.join(BASE_DIR, "..", "data")
+SAVE_DIR = os.path.normpath("data")
 os.makedirs(SAVE_DIR, exist_ok=True)
 
 
-def check_mail_and_download():
+async def check_mail_and_download(bot=None):
+    """
+    Check mail for new messages and process attachments.
+    
+    Args:
+        bot: Optional bot instance to send notifications
+    """
     logger.info("Старт проверки почты...")
 
     try:
         mail = imaplib.IMAP4_SSL(MAIL_HOST)
         mail.login(MAIL_USER, MAIL_PASS)
-        mail.select("INBOX")
-
+        mail.select(READ_DIR)
         # Непрочитанные письма от нужного адреса
-        status, messages = mail.search(None, f'(UNSEEN FROM "{SENDER_FILTER}")')
+        status, messages = mail.search(None, f'(FROM "{SENDER_FILTER}")')
 
         if status != "OK":
             logger.warning("Ошибка поиска писем")
@@ -49,8 +62,10 @@ def check_mail_and_download():
             for part in msg.walk():
                 if part.get_content_disposition() == "attachment":
                     filename = part.get_filename()
+                    print(filename)
                     if filename:
                         filepath = os.path.join(SAVE_DIR, "report.xls")
+                        print(filepath)
                         with open(filepath, "wb") as f:
                             f.write(part.get_payload(decode=True))
                         logger.info(f"Скачан файл: {filename}")
@@ -65,3 +80,10 @@ def check_mail_and_download():
 
     except Exception as e:
         logger.error(f"Ошибка при работе с почтой: {e}")
+    #Обработка файла, загрузка в БД, выборка отсутствующих товаров и отправка админу
+    df = load_report()
+    count = update_products_from_df(df=df, session=session)
+    print(df, df.shape)
+    print(count)
+    if bot and count > 0:  # Only try to send file if bot instance is provided
+        await send_file_to_admin("data/filtered.xls", bot)

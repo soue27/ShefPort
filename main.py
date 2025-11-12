@@ -32,14 +32,18 @@ async def main():
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
         check_mail_and_download,
+        args=(bot,),  # Pass the bot instance to the function
         trigger="cron",
         hour=21,
         minute=0
     )
+    # scheduler.add_job(
+    #     check_mail_and_download,
+    #     trigger="interval",
+    #     minutes=5
+    # )
     scheduler.start()
     logger.info("Бот запущен")
-    print(DB_URL)
-    print(BOT_TOKEN)
     await dp.start_polling(bot)
 
 
