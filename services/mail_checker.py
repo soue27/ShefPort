@@ -86,4 +86,4 @@ async def check_mail_and_download(bot=None):
     print(df, df.shape)
     print(count)
     if bot and count > 0:  # Only try to send file if bot instance is provided
-        await send_file_to_admin("data/filtered.xls", bot)
+        await send_file_to_admin("data/output.xls", bot)

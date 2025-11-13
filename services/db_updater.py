@@ -118,7 +118,7 @@ def update_products_from_df(df: pd.DataFrame, session: Session):
         df_filtered = df[df["Код"].isin(not_found)]
 
         # Сохраняем результат (если нужно)
-        df_filtered.to_excel("data/filtered.xls", index=False)
+        df_filtered.to_excel("data/output.xls", index=False)
         # dobavka = update_notfound_to_bd(df_filtered, session)
         logger.info(f"Необхоидмо добавление {df_filtered.shape[0]} товаров")
     else:

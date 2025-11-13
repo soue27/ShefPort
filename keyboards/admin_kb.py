@@ -14,7 +14,10 @@ def main_kb() -> InlineKeyboardMarkup:
     text2 = plural_form(count2, ("сообщение", "сообщения", "сообщений"))
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text=f"{count} - {text.capitalize()}", callback_data="check_carts"),
-                InlineKeyboardButton(text=f"{count2} - {text2.capitalize()}", callback_data="check_questions"))
+                InlineKeyboardButton(text=f"{count2} - {text2.capitalize()}", callback_data="check_questions"),
+                InlineKeyboardButton(text="Рассылка", callback_data="mailing"))
+    builder.adjust(2)
+
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
 
 
@@ -36,4 +39,18 @@ def get_questions(questions):
         builder.button(text=f"№{question.id}-{question.text[:20]}", callback_data=f"question_{question.id}")
     builder.adjust(1)
 
-    return builder.as_markup(resize_keyboard=True)
+    return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
+
+
+def mailing_kb():
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Пост с текстом", callback_data="post_text"),
+                InlineKeyboardButton(text=f"Пост с фото/видео", callback_data="post_image"))
+    return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
+
+
+def confirm_kb():
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Отправить", callback_data="mailing_confirm"),
+                InlineKeyboardButton(text=f"Изменить", callback_data="mailing_cancel"))
+    return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)

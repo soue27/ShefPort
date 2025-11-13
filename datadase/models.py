@@ -135,7 +135,10 @@ class News(AbstractBase):
     __tablename__ = 'news'
     title = Column(String(100), nullable=True)
     post = Column(Text)
-    url = Column(String(100), nullable=True)
+    image_url = Column(String(300), nullable=True)
+    url = Column(String(300), nullable=True)
+    vk_id = Column(Integer, nullable=True)
+    vk_url = Column(String(300), nullable=True)
 
     def __repr__(self):
         return f"<News(id={self.id}, title={self.title}, url={self.url})>"

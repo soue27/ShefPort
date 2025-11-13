@@ -13,13 +13,14 @@ from datetime import datetime
 from typing import Type, Optional, List, Any
 from zoneinfo import ZoneInfo
 
+from openpyxl.styles.builtins import title
 from sqlalchemy import select, func, ScalarResult
 from aiogram.types import CallbackQuery
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, DeclarativeBase
 
 from data.config import DB_URL, ECHO
-from datadase.models import Base, Costumer, Product, Category, Question
+from datadase.models import Base, Costumer, Product, Category, Question, News
 from services.search import normalize_text
 
 
@@ -278,6 +279,32 @@ def save_answer(session: Session, question_id, answer_text) -> bool:
     return True
 
 
+def get_all_costumer_for_mailing(session: Session):
+    stmt = select(Costumer.tg_id).where(Costumer.news == True)
+    result = session.scalars(stmt).all()
+    return result
+
+
+def save_news(session: Session, data: dict):
+    """
+    Saves news to the database.
+
+    :param session: SQLAlchemy session for database operations
+    :param data -словарь с данными
+    """
+    for key, value in data.items():
+        print(f"{key}: {value}")
+    title = data['title']
+    post = data['post']
+    url = data['url']
+    if 'photo' in data:
+        photo = data['photo']
+    else:
+        photo = None
+    with session as ses:
+        news = News(title=title, post=post, url=url, image_url=photo)
+        ses.add(news)
+        ses.commit()
 
 
 
