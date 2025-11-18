@@ -128,7 +128,7 @@ class Cart(AbstractBase):
         return sum(item.quantity for item in self.items)
 
     def __repr__(self):
-        return f"<Cart(id={self.id}, user_id={self.user_id}, items={len(self.items)})>"
+        return f"<Cart(id={self.id}, user_id={self.user_id}, items={len(self.items.count())})>"
 
 
 class News(AbstractBase):
@@ -137,6 +137,7 @@ class News(AbstractBase):
     post = Column(Text)
     image_url = Column(String(300), nullable=True)
     url = Column(String(300), nullable=True)
+    media_type = Column(String(10), nullable=True)
     vk_id = Column(Integer, nullable=True)
     vk_url = Column(String(300), nullable=True)
 

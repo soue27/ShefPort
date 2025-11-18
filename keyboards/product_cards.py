@@ -29,7 +29,7 @@ def create_product_card_keyboard(product_id: int):
         text="⚡ Быстрый заказ",
         callback_data=f"quick_order_{product_id}"
     )
-
+    #
     # Сетка: первые две кнопки в ряд, третья отдельно
     builder.adjust(2, 1)
 

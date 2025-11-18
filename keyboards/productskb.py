@@ -22,7 +22,7 @@ def get_products_kb(products: list, page: int = 0, items_per_page: int = 8):
 
     # Добавляем кнопки продуктов текущей страницы
     for product in page_products:
-        # Обрезаем длинные названия чтобы избежать переполнения
+        # Обрезаем длинные названия, чтобы избежать переполнения
         button_text = product.name[:30] + "..." if len(product.name) > 30 else product.name
         builder.button(
             text=button_text,

@@ -100,9 +100,9 @@ async def handle_answer(message: Message, state: FSMContext, bot: Bot) -> None:
 
 #Обработка ввода и отправки рассылок
 async def send_news(data: dict, users: list, bot: Bot):
-    """Функция для рассылки новостей, также исполльзуется для предпросмотра
-    :param data - словарь с данными
-    :param users - списко рассылки, для предпросмотра используется один айди
+    """Функция для рассылки новостей, также исполльзуется для предпросмотра.
+    :param data - словарь с данными.
+    :param users - списко рассылки, для предпросмотра используется один айди.
     :param bot - экземплыр класса.
     """
     mypost = (f"<b>{data['title']}</b>\n"
@@ -122,7 +122,7 @@ async def send_news(data: dict, users: list, bot: Bot):
     else:
         for user in users:
             await bot.send_message(chat_id=user, text=f"{mypost} {url_text}" ,  disable_web_page_preview=True)
-    save_news(session, data)
+    # save_news(session, data)
 
 
 
@@ -219,14 +219,17 @@ async def handle_texttimageurl(message: Message, state: FSMContext, bot: Bot):
 async def show_mailing_types(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
     """Обработка нажатия кнопки Рассылка в меню"""
     # Получаем сохраненные данные
-    data = await state.get_data()
-    my_data = data.get('mailing_content')
-    users = get_all_costumer_for_mailing(session)
-    if my_data:
-        await send_news(data=my_data, users=users, bot=bot)
-        save_news(session, my_data)
-    await callback.message.answer("Сообщение отправлено")
-    await state.clear()
+    if callback.data.split("_")[1] == 'cancel':
+        await callback.message.answer("Выберите тип сообщения:", reply_markup=mailing_kb())
+    elif callback.data.split("_")[1] == 'confirm':
+        data = await state.get_data()
+        my_data = data.get('mailing_content')
+        users = get_all_costumer_for_mailing(session)
+        if my_data:
+            await send_news(data=my_data, users=users, bot=bot)
+            save_news(session, my_data)
+        await callback.message.answer("Сообщение отправлено")
+        await state.clear()
 
 
 async def send_file_to_admin(file_path: str, bot: Bot):

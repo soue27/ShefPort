@@ -48,7 +48,7 @@ def update_notfound_to_bd(df, session):
 
     Args:
         df (pd.DataFrame): DataFrame containing the "Количество" column.
-
+        session (Session): SQLAlchemy session for database operations.
     Returns:
         pd.DataFrame: DataFrame with the "Количество" column converted to numeric values or set to 0.
     """

@@ -11,10 +11,7 @@ It also provides a function for saving user data to database.
 import re
 from datetime import datetime
 from typing import Type, Optional, List, Any
-from zoneinfo import ZoneInfo
-
-from openpyxl.styles.builtins import title
-from sqlalchemy import select, func, ScalarResult
+from sqlalchemy import select, func
 from aiogram.types import CallbackQuery
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, DeclarativeBase
@@ -268,7 +265,7 @@ def get_all_admin(session: Session):
 
 
 def save_answer(session: Session, question_id, answer_text) -> bool:
-    question = session.execute(select(Question).where(Question.id ==question_id))
+    question = session.execute(select(Question).where(Question.id == question_id))
     question = question.scalar_one_or_none()
     if not question:
         return False
@@ -280,7 +277,7 @@ def save_answer(session: Session, question_id, answer_text) -> bool:
 
 
 def get_all_costumer_for_mailing(session: Session):
-    stmt = select(Costumer.tg_id).where(Costumer.news == True)
+    stmt = select(Costumer.tg_id).where(Costumer.news.is_(True))
     result = session.scalars(stmt).all()
     return result
 
@@ -297,12 +294,13 @@ def save_news(session: Session, data: dict):
     title = data['title']
     post = data['post']
     url = data['url']
+    type1 = data['type']
     if 'photo' in data:
         photo = data['photo']
     else:
         photo = None
     with session as ses:
-        news = News(title=title, post=post, url=url, image_url=photo)
+        news = News(title=title, post=post, url=url, image_url=photo, media_type = type1)
         ses.add(news)
         ses.commit()
 
