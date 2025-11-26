@@ -14,7 +14,7 @@ Key Features:
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from datadase.db import get_all_categories, session
+from database.db import get_all_categories, session
 
 
 def get_categories_kb(categories: list, page: int = 0) -> InlineKeyboardMarkup:

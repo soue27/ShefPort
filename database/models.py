@@ -1,5 +1,5 @@
 """
-Модуль datadase.models
+Модуль database.models
 
 Содержит определения таблиц для хранения данных в базе данных.
 
@@ -59,6 +59,9 @@ class Product(AbstractBase):
     
     # Связь с элементами корзины
     cart_items = relationship("CartItems", back_populates="product")
+
+    # Связь с элементами заказа
+    order_items = relationship("OrderItems", back_populates="product")
     
     def __repr__(self):
         return f"<Product(id={self.id}, name='{self.name}', price={self.price})>"
@@ -77,6 +80,7 @@ class Costumer(AbstractBase):
 
     carts = relationship("Cart", back_populates="user")
     questions = relationship("Question", back_populates="user")
+    orders = relationship("Order", back_populates="user")
 
     def __repr__(self):
         return f"<TelegramContact(user_id={self.tg_id}, username={self.username})>"
@@ -111,7 +115,8 @@ class Cart(AbstractBase):
     is_active = Column(Boolean, default=True)  # Активная корзина
     is_done = Column(Boolean, default=False)  # Отметка о там, что сбор корзины закончен
     is_issued = Column(Boolean, default=False)  # Отметка о там, что товар из корзины выдан
-
+    is_done_at = Column(DateTime, nullable=True)  # дата сбора корзины
+    is_issued_at = Column(Boolean, default=False)  # Дата выдачи корзины
 
     # Relationships
     user = relationship("Costumer", back_populates="carts")
@@ -128,7 +133,7 @@ class Cart(AbstractBase):
         return sum(item.quantity for item in self.items)
 
     def __repr__(self):
-        return f"<Cart(id={self.id}, user_id={self.user_id}, items={len(self.items.count())})>"
+        return f"<Cart(id={self.id}, user_id={self.user_id}, items={len(self.items)})>"
 
 
 class News(AbstractBase):
@@ -136,7 +141,7 @@ class News(AbstractBase):
     title = Column(String(100), nullable=True)
     post = Column(Text)
     image_url = Column(String(300), nullable=True)
-    url = Column(String(300), nullable=True)
+    url = Column(String(100), nullable=True)
     media_type = Column(String(10), nullable=True)
     vk_id = Column(Integer, nullable=True)
     vk_url = Column(String(300), nullable=True)
@@ -169,7 +174,54 @@ class Question(AbstractBase):
         return f"<Question (text={self.text[:30]}, from {self.user_id}"
 
 
+class OrderItems(AbstractBase):
+    __tablename__ = 'order_items'
 
+    order_id = Column(Integer, ForeignKey('orders.id'), nullable=False)
+    product_id = Column(Integer, ForeignKey('products.id'), nullable=False)
+    quantity = Column(Integer, nullable=False, default=1)
+    unit_price = Column(Float, nullable=False)
+
+    # Relationships
+    order = relationship("Order", back_populates="items")
+    product = relationship("Product", back_populates="order_items")
+
+    @property
+    def total_price(self):
+        """Общая цена за позицию (цена * количество)"""
+        return self.unit_price * self.quantity
+
+    def __repr__(self):
+        return f"<OrderItem(id={self.id}, product_id={self.product_id}, quantity={self.quantity})>"
+
+
+class Order(AbstractBase):
+    __tablename__ = 'orders'
+    user_id = Column(Integer, ForeignKey('costumers.id'), nullable=False)
+    name = Column(String(100), default="Заказ")  # Название заказа
+    is_active = Column(Boolean, default=True)  # Активный заказ?
+    is_done = Column(Boolean, default=False)  # Отметка о там, что сбор заказа закончен
+    is_done_at = Column(DateTime, nullable=True) # дата сбора заказа
+    is_issued = Column(Boolean, default=False)  # Отметка о там, что товар из корзины выдан
+    is_issued_at = Column(Boolean, default=False)  # Дата выдачи заказа
+
+
+    # Relationships
+    user = relationship("Costumer", back_populates="orders")
+    items = relationship("OrderItems", back_populates="order", cascade="all, delete-orphan")
+
+    @property
+    def total_amount(self):
+        """Общая сумма заказа"""
+        return sum(item.total_price for item in self.items)
+
+    @property
+    def total_items(self):
+        """Общее количество товаров в заказе"""
+        return sum(item.quantity for item in self.items)
+
+    def __repr__(self):
+        return f"<Order(id={self.id}, user_id={self.user_id}, items={len(self.items.count())})>"
 
 
 

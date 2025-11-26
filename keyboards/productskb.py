@@ -6,7 +6,7 @@ This module contains functions for creating keyboard layouts for product navigat
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from datadase.db import get_all_categories, session
+from database.db import get_all_categories, session
 
 
 def get_products_kb(products: list, page: int = 0, items_per_page: int = 8):

@@ -9,7 +9,7 @@ from aiogram.types import  CallbackQuery
 from sqlalchemy.orm import Session
 
 from handlers.product_helpers import send_products_batch
-from datadase.db import get_products_by_category, session
+from database.db import get_products_by_category, session
 from keyboards.catalog_control import create_pause_keyboard
 
 router = Router(name='catalog_router')

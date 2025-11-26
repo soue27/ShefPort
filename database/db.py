@@ -1,5 +1,5 @@
 """
-Module datadase.db
+Module database.db
 
 This module contains functions for working with database.
 
@@ -8,16 +8,19 @@ It creates a database engine, creates all tables in database and provides a sess
 It also provides a function for saving user data to database.
 
 """
+import os
 import re
 from datetime import datetime
 from typing import Type, Optional, List, Any
-from sqlalchemy import select, func
+
+import pandas as pd
+from sqlalchemy import select, func, Engine, types
 from aiogram.types import CallbackQuery
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, DeclarativeBase
 
 from data.config import DB_URL, ECHO
-from datadase.models import Base, Costumer, Product, Category, Question, News
+from database.models import Base, Costumer, Product, Category, Question, News, Cart, Order
 from services.search import normalize_text
 
 
@@ -137,7 +140,7 @@ def get_product_description(session: Session, product_id: int) -> Product:
     :return: Description of the product
     """
     product = session.query(Product.name, Product.image,Product.description,
-                            Product.characteristics).filter(Product.id == product_id).first()
+                            Product.characteristics, Product.price).filter(Product.id == product_id).first()
     return product
 
 
@@ -303,6 +306,65 @@ def save_news(session: Session, data: dict):
         news = News(title=title, post=post, url=url, image_url=photo, media_type = type1)
         ses.add(news)
         ses.commit()
+
+#раздел работы с корзиной покупок
+def get_active_cart(session: Session, tg_id: int):
+    id = get_costumer_id(session, tg_id)
+    stmt = select(Cart.id).where(Cart.user_id == id, Cart.is_active == True)
+    result = session.scalar(stmt)
+    print(result)
+    return result
+
+
+def set_active_cart(session: Session, tg_id: int):
+
+    today = datetime.now().strftime("%d.%m.%Y")
+    user_id = get_costumer_id(session, tg_id)
+    name = f"Корзина от {today}"
+    print(name, user_id, tg_id)
+    with session as ses:
+        cart = Cart(user_id=user_id, name=name, is_active=True)
+        ses.add(cart)
+        ses.flush()
+        cart_id = cart.id
+        ses.commit()
+    return cart_id
+
+
+def load_data(file_name: str, engine: Engine) -> int:
+    try:
+        df = pd.read_excel(file_name, dtype={"article": str})
+        dtype_config = {
+            "name" : types.String(500),
+            "url" : types.String(500),
+            "image" : types.String(500),
+            "price" : types.Float(),
+            "unit" : types.String(50),
+            "product_id" : types.String(100),
+            "article" : types.String(100),
+            "description" : types.Text,
+            'full_description' : types.Text,
+            "characteristics" : types.Text,
+            "main_image" : types.String(500),
+            "additional_images" : types.Text,
+            "weight" : types.String(100),
+            "calories" : types.String(100),
+            "nutrition_facts" : types.Text,
+            "category_id" : types.Integer(),
+            "ostatok" :types.Float()
+        }
+
+        df.to_sql(name='products', con=engine, if_exists='append', index=False, dtype=dtype_config)
+        result = df.shape[0]
+        os.remove(file_name)
+        del df
+        return result
+    except Exception as e:
+        os.remove(file_name)
+        print(e)
+        del df
+        return 0
+
 
 
 

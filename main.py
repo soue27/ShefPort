@@ -9,7 +9,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from data.config import BOT_TOKEN, DB_URL, ECHO
-from handlers import user_start, costumer, products, catalog, admin
+from handlers import user_start, costumer, products, catalog, admin, carts, orders
 from services.mail_checker import check_mail_and_download
 
 
@@ -28,6 +28,8 @@ async def main():
     dp.include_router(products.router)
     dp.include_router(catalog.router)
     dp.include_router(admin.router)
+    dp.include_router(carts.router)
+    dp.include_router(orders.router)
     #Ежедневный запуск опроса почты
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
@@ -35,7 +37,7 @@ async def main():
         args=(bot,),  # Pass the bot instance to the function
         trigger="cron",
         hour=21,
-        minute=0
+        minute=00
     )
     # scheduler.add_job(
     #     check_mail_and_download,

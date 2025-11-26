@@ -4,9 +4,11 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.filters import Command
+from sqlalchemy.util import await_only
 
 from data.config import SUPERADMIN_ID
-from datadase.db import get_new_questions, session, get_question_by_id, save_answer, get_all_costumer_for_mailing, save_news
+from database.db import get_new_questions, session, get_question_by_id, save_answer, get_all_costumer_for_mailing, \
+    save_news, load_data, engine
 from keyboards.admin_kb import main_kb, check_questions, get_questions, mailing_kb, confirm_kb
 from services.filters import IsAdmin
 
@@ -234,7 +236,7 @@ async def show_mailing_types(callback: CallbackQuery, state: FSMContext, bot: Bo
 
 async def send_file_to_admin(file_path: str, bot: Bot):
     """
-    Send file to admin.
+    Send file to superadmin.
 
     Args:
         file_path (str): Path to file.
@@ -245,4 +247,20 @@ async def send_file_to_admin(file_path: str, bot: Bot):
     file_path = file_path
     document = FSInputFile(file_path)
     await bot.send_document(chat_id=user_id, document=document, caption="Необходимо добавить в БД данные позиции")
+
+
+@router.message(F.document, IsAdmin())
+async def load_dates(messege: Message, bot: Bot):
+    file_idx = messege.document.file_id
+    file = await bot.get_file(file_id=file_idx)
+    file_path = file.file_path
+    print(file, file_path)
+    await bot.download_file(file_path , "data/forload.xlsx")
+    count = load_data("data/forload.xlsx", engine=engine)
+    if count != 0:
+        await messege.answer(f"Загружено {count} позиций")
+    else:
+        await messege.answer(f"Ошибка загрузки позиций")
+
+
 

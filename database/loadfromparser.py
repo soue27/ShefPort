@@ -6,7 +6,7 @@
 
 """
 import json
-from datadase.models import Product, Category
+from database.models import Product, Category
 from sqlalchemy.orm import Session
 from typing import Dict, Any
 

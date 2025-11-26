@@ -10,7 +10,7 @@ from aiogram import F
 from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from datadase.db import session, search_products
+from database.db import session, search_products
 from handlers.product_helpers import send_product_card
 
 

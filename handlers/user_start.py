@@ -16,7 +16,7 @@ from aiogram import Router, F, types
 from aiogram.types import Message
 from aiogram.filters import CommandStart
 
-from datadase.db import session, save_costumer, get_random_photo, get_all_categories
+from database.db import session, save_costumer, get_random_photo, get_all_categories
 
 from loguru import logger
 

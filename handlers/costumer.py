@@ -9,7 +9,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message
 
-from datadase.db import session, get_all_categories, search_products, save_question, get_all_admin
+from database.db import session, get_all_categories, search_products, save_question, get_all_admin
 
 from handlers.product_helpers import start_category_products
 from handlers.search_helpers import (
@@ -147,4 +147,6 @@ async def get_message(message: Message, state: FSMContext, bot: Bot):
     for admin in admins:
         await bot.send_message(chat_id=admin, text=f"Получено сообщение от {message.from_user.full_name}: {message.text[:20]}")
     await state.clear()
+
+
 

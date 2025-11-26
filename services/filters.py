@@ -1,7 +1,7 @@
 from aiogram.filters import BaseFilter
 from aiogram.types import Message
 
-from datadase.db import is_admin, session
+from database.db import is_admin, session
 
 
 class IsAdmin(BaseFilter):

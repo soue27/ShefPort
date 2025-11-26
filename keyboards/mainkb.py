@@ -27,7 +27,7 @@ def get_main_kb() -> ReplyKeyboardMarkup:
         keyboard=[
             [KeyboardButton(text="🐠 Категории товаров"), KeyboardButton(text="🔎 Поиск товара")],
             [KeyboardButton(text="🛒 Моя корзина"), KeyboardButton(text="📝 Написать сообщение")],
-            [KeyboardButton(text="Заказать товар"), KeyboardButton(text="📰 Новости")]
+            [KeyboardButton(text="🛍  Мои заказы"), KeyboardButton(text="📰 Новости")]
         ],
         resize_keyboard=True,  # Кнопки подстраиваются под размер
         one_time_keyboard=False,  # Клавиатура не скрывается после нажатия

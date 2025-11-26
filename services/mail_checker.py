@@ -5,7 +5,7 @@ import os
 
 
 from data.config import MAIL_USER, MAIL_PASS, SENDER_FILTER, READ_DIR, MAIL_HOST
-from datadase.db import session
+from database.db import session
 from handlers.admin import send_file_to_admin
 from services.db_updater import load_report, update_products_from_df
 
@@ -86,4 +86,4 @@ async def check_mail_and_download(bot=None):
     print(df, df.shape)
     print(count)
     if bot and count > 0:  # Only try to send file if bot instance is provided
-        await send_file_to_admin("data/output.xls", bot)
+        await send_file_to_admin("data/output.xlsx", bot)

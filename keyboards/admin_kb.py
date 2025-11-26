@@ -1,8 +1,8 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from datadase.db import get_all_categories, session, count_model_records
-from datadase.models import Question, Cart
+from database.db import get_all_categories, session, count_model_records
+from database.models import Question, Cart
 from services.search import plural_form
 
 

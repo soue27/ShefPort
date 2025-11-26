@@ -7,8 +7,8 @@ import asyncio
 
 from aiogram.types import InputFile
 
-from datadase.db import get_products_by_category
-from datadase.models import Product
+from database.db import get_products_by_category
+from database.models import Product
 from keyboards.product_cards import create_product_card_keyboard
 from keyboards.catalog_control import create_control_keyboard
 
@@ -28,8 +28,10 @@ async def send_product_card(message, product, index=None, total=None):
         if product.description:
             description_preview = product.description[:100] + "..." if len(product.description) > 100 else product.description
             description_preview = description_preview.removeprefix("Описание")
+            describe = True
         elif product.description is None or product.description == "":
             description_preview = "Описание отсутствует"
+            describe = False
 
         # Подготовка данных для описания цены товара
         if product.ostatok is None:
@@ -41,15 +43,17 @@ async def send_product_card(message, product, index=None, total=None):
 
         if ost == "Нет в наличии":
             output = f"Нет в наличии"
+            to_order = True
         else:
             output = f"В наличии: {ost} {product.unit}"
+            to_order = False
 
 
 
         # Оптимизация изображения
         optimized_image = product.image
         photo1 = "https://chefport.ru/image/cache/placeholder-270x180.png"
-        keyboard = create_product_card_keyboard(product.id)
+        keyboard = create_product_card_keyboard(product.id, to_order, describe)
 
         # Отправка карточки
         if optimized_image:
