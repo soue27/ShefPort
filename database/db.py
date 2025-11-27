@@ -14,13 +14,14 @@ from datetime import datetime
 from typing import Type, Optional, List, Any
 
 import pandas as pd
-from sqlalchemy import select, func, Engine, types
+from sqlalchemy import select, func, Engine, types, update, delete
 from aiogram.types import CallbackQuery
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, DeclarativeBase
 
 from data.config import DB_URL, ECHO
-from database.models import Base, Costumer, Product, Category, Question, News, Cart, Order
+from database.models import Base, Costumer, Product, Category, Question, News, Cart, Order, CartItems, AbstractBase, \
+    OrderItems
 from services.search import normalize_text
 
 
@@ -307,31 +308,121 @@ def save_news(session: Session, data: dict):
         ses.add(news)
         ses.commit()
 
-#раздел работы с корзиной покупок
-def get_active_cart(session: Session, tg_id: int):
-    id = get_costumer_id(session, tg_id)
-    stmt = select(Cart.id).where(Cart.user_id == id, Cart.is_active == True)
-    result = session.scalar(stmt)
-    print(result)
-    return result
+#regoin
 
-
-def set_active_cart(session: Session, tg_id: int):
-
+def set_active_entity(session: Session, tg_id: int, model):
+    """Установка новой активной корзины"""
     today = datetime.now().strftime("%d.%m.%Y")
     user_id = get_costumer_id(session, tg_id)
-    name = f"Корзина от {today}"
-    print(name, user_id, tg_id)
+    if model == Cart:
+        name = f"Корзина от {today}"
+    else:
+        name = f"Заказ от {today}"
+    model=model
     with session as ses:
-        cart = Cart(user_id=user_id, name=name, is_active=True)
-        ses.add(cart)
+        entity = model(user_id=user_id, name=name, is_active=True)
+        ses.add(entity)
         ses.flush()
-        cart_id = cart.id
+        cart_id = entity.id
         ses.commit()
     return cart_id
 
 
+def save_product_to_entity(session: Session, entity_id: int, product_id: int, quantity: float, unit_price: float, model):
+    # Проверяем существующий товар в корзине CartItems, OrderItems
+    if model == CartItems:
+        existing_item = session.query(CartItems).filter(
+            CartItems.cart_id == entity_id,
+            CartItems.product_id == product_id
+        ).first()
+    else:
+        existing_item = session.query(OrderItems).filter(
+            OrderItems.order_id == entity_id,
+            OrderItems.product_id == product_id
+        ).first()
+
+    if existing_item:
+        existing_item.quantity += quantity
+    elif model == CartItems: # Tсли товара нет, то создаем новую запись
+        item = model(
+            cart_id=entity_id,
+            product_id=product_id,
+            quantity=quantity,
+            unit_price=unit_price
+        )
+        session.add(item)
+    else:
+        item = model(
+            order_id=entity_id,
+            product_id=product_id,
+            quantity=quantity,
+            unit_price=unit_price
+        )
+        session.add(item)
+    session.commit()
+    return True
+
+
+def get_active_entity(session: Session, user_id: int, model):
+    """Возвращает активную корзину пользователя"""
+    id = get_costumer_id(session, user_id)
+    stmt = select(model).where(
+        model.user_id == id,
+        model.is_active == True
+    )
+    result = session.execute(stmt)
+    return result.scalars().first()
+
+
+def get_entity_items(session: Session, cart_id: int, model):
+    """Возвращает список товаров корзины CartItems, OrderItems"""
+    if model == CartItems:
+        stmt = select(model).where(CartItems.cart_id == cart_id)
+    else:
+        stmt = select(model).where(OrderItems.order_id == cart_id)
+    return session.execute(stmt).scalars().all()
+
+
+def change_item_quantity(session: Session, item_id: int, delta: int, model):
+    """Изменяет количество товара CartItems, OrderItems"""
+    stmt = select(model).where(model.id == item_id)
+    item = session.execute(stmt).scalar_one_or_none()
+
+    if not item:
+        return None
+
+    item.quantity = max(1, item.quantity + delta)
+    session.commit()
+    session.refresh(item)
+    return item
+
+
+def delete_entity_item(session: Session, item_id: int, model):
+    """Удаляет элемент корзины CartItems, OrderItems"""
+    stmt = delete(model).where(model.id == item_id)
+    session.execute(stmt)
+    session.commit()
+
+
+def confirm_entity(session: Session, cart_id: int, model):
+    """Подтверждение корзины Cart Order"""
+    stmt = (
+        update(model)
+        .where(model.id == cart_id)
+        .values(is_active=False, is_done=True)
+    )
+    session.execute(stmt)
+    session.commit()
+
+
+##########################################
+#раздел работы с корзиной покупок и заказов
+##########################################
+#endregoin
+
+
 def load_data(file_name: str, engine: Engine) -> int:
+    """Загрузка новых товаров в БД"""
     try:
         df = pd.read_excel(file_name, dtype={"article": str})
         dtype_config = {
@@ -364,6 +455,20 @@ def load_data(file_name: str, engine: Engine) -> int:
         print(e)
         del df
         return 0
+
+
+def get_product_by_id(session: Session, product_id: int):
+    """
+    Get product by id from database.
+
+    :param session: session object of SQLAlchemy
+    :param product_id: id of product in database
+    :return: product object or None if product not found
+    """
+    stmt = select(Product).where(Product.id == product_id)
+    result = session.scalar(stmt)
+    return result
+
 
 
 

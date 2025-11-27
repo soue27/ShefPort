@@ -92,7 +92,7 @@ class CartItems(AbstractBase):
     
     cart_id = Column(Integer, ForeignKey('carts.id'), nullable=False)
     product_id = Column(Integer, ForeignKey('products.id'), nullable=False)
-    quantity = Column(Integer, nullable=False, default=1)
+    quantity = Column(Float, nullable=False, default=1)
     unit_price = Column(Float, nullable=False)
     
     # Relationships
@@ -221,8 +221,7 @@ class Order(AbstractBase):
         return sum(item.quantity for item in self.items)
 
     def __repr__(self):
-        return f"<Order(id={self.id}, user_id={self.user_id}, items={len(self.items.count())})>"
-
+        return f"<Order(id={self.id}, user_id={self.user_id}, items={len(self.items)})>"
 
 
 
