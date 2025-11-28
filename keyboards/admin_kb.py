@@ -2,18 +2,25 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from database.db import get_all_categories, session, count_model_records
-from database.models import Question, Cart
+from database.models import Question, Cart, Order
 from services.search import plural_form
 
 
 def main_kb() -> InlineKeyboardMarkup:
     """Клавиатура для администратора"""
-    count = count_model_records(session, Cart, filters=[Cart.is_done == False]) # подсчет количества Незавершенных заказы
-    text = plural_form(count, ("заказ", "заказа", "заказов"))
+    count_cart = count_model_records(session, Cart, filters=[Cart.is_done == True])# подсчет количества Незавершенных заказы
+    count_cart_issued = count_model_records(session, Cart, filters=[Cart.is_issued == True])
+    count_order = count_model_records(session, Order, filters=[Order.is_done == True])
+    count_order_issued = count_model_records(session, Order, filters=[Order.is_issued == True])
+    text_cart = plural_form(count_cart, ("корзина", "корзины", "корзин"))
+    text_order = plural_form(count_order, ("заказ", "заказа", "заказов"))
     count2 = count_model_records(session, Question, filters=[Question.is_answered == False]) # подсчет количества сообщений в работе
     text2 = plural_form(count2, ("сообщение", "сообщения", "сообщений"))
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text=f"{count} - {text.capitalize()}", callback_data="check_carts"),
+    builder.row(InlineKeyboardButton(text=f"{count_cart} - {text_cart.capitalize()} для сбора", callback_data="done_carts"),
+                InlineKeyboardButton(text=f"{count_cart_issued} - {text_cart.capitalize()} для выдачи" , callback_data="issued_carts"),
+                InlineKeyboardButton(text=f"{count_order} - {text_order.capitalize()} для заказа", callback_data="done_order"),
+                InlineKeyboardButton(text=f"{count_order_issued} - {text_order.capitalize()} для выдачи" , callback_data="issued_order"),
                 InlineKeyboardButton(text=f"{count2} - {text2.capitalize()}", callback_data="check_questions"),
                 InlineKeyboardButton(text="Рассылка", callback_data="mailing"))
     builder.adjust(2)

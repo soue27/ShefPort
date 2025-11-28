@@ -31,7 +31,8 @@ def delete_confirm_kb(item_id: int, model: str):
 def cart_main_kb(cart_id: int, model: str):
     kb = InlineKeyboardBuilder()
     kb.row(
-        Btn(text="✅ Подтвердить заказ", callback_data=f"{model}_confirm:{cart_id}")
+        Btn(text="✅ Подтвердить заказ", callback_data=f"{model}_confirm:{cart_id}"),
+        Btn(text="❌ Удалить заказ", callback_data=f"{model}_delete:{cart_id}")
     )
     kb.row(
         Btn(text="🔙 Выйти из корзины", callback_data=f"{model}_cleanup")

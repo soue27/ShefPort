@@ -17,7 +17,7 @@ import pandas as pd
 from sqlalchemy import select, func, Engine, types, update, delete
 from aiogram.types import CallbackQuery
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, DeclarativeBase
+from sqlalchemy.orm import Session, DeclarativeBase, sessionmaker
 
 from data.config import DB_URL, ECHO
 from database.models import Base, Costumer, Product, Category, Question, News, Cart, Order, CartItems, AbstractBase, \
@@ -413,8 +413,27 @@ def confirm_entity(session: Session, cart_id: int, model):
     )
     session.execute(stmt)
     session.commit()
+    return session.get(model, cart_id)
+
+def delete_entity(session: Session, item_id: int, model):
+    """Удаляет  корзину Cart, Order"""
+    stmt = delete(model).where(model.id == item_id)
+    session.execute(stmt)
+    session.commit()
 
 
+def get_entity_item(session: Session, item_id: int, model):
+    """Получение элемента корзины CartItems, OrderItems"""
+    stmt = select(model).where(model.id == item_id)
+    result = session.execute(stmt).scalar_one_or_none()  # Получаем один объект или None
+    return result
+
+
+def get_entity_by_id(session: Session, item_id: int, model):
+    """Получение элемента корзины Cart, Order"""
+    stmt = select(model).where(model.id == item_id)
+    result = session.execute(stmt).scalar_one_or_none()  # Получаем один объект или None
+    return result
 ##########################################
 #раздел работы с корзиной покупок и заказов
 ##########################################
@@ -465,9 +484,10 @@ def get_product_by_id(session: Session, product_id: int):
     :param product_id: id of product in database
     :return: product object or None if product not found
     """
-    stmt = select(Product).where(Product.id == product_id)
-    result = session.scalar(stmt)
-    return result
+    with session as ses:
+        stmt = select(Product).where(Product.id == product_id)
+        result = session.scalar(stmt)
+        return result
 
 
 

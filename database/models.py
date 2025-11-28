@@ -199,11 +199,11 @@ class Order(AbstractBase):
     __tablename__ = 'orders'
     user_id = Column(Integer, ForeignKey('costumers.id'), nullable=False)
     name = Column(String(100), default="Заказ")  # Название заказа
-    is_active = Column(Boolean, default=True)  # Активный заказ?
-    is_done = Column(Boolean, default=False)  # Отметка о там, что сбор заказа закончен
-    is_done_at = Column(DateTime, nullable=True) # дата сбора заказа
-    is_issued = Column(Boolean, default=False)  # Отметка о там, что товар из корзины выдан
-    is_issued_at = Column(Boolean, default=False)  # Дата выдачи заказа
+    is_active = Column(Boolean, default=True)  # Заказ активен - False - завешен
+    is_done = Column(Boolean, default=False)  #  True проводится сбор корзины
+    is_done_at = Column(DateTime, nullable=True) # дата оконачания заказа
+    is_issued = Column(Boolean, default=False)  # True - проводится выдача корзины
+    is_issued_at = Column(Boolean, default=False)  # Дата выдачи корзины
 
 
     # Relationships
