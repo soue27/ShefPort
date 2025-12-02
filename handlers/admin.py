@@ -49,7 +49,7 @@ from database.db import (
     get_entity_for_issued,
     set_entity_close,
 )
-from database.models import Cart, CartItems
+from database.models import Cart, CartItems, Order, OrderItems
 from keyboards.admin_kb import (
     main_kb,
     check_questions,
@@ -120,6 +120,10 @@ class MailingStates(StatesGroup):
 
 class CommentStates(StatesGroup):
     Comment = State()
+
+
+class CommentStatesOrder(StatesGroup):
+    CommentOrder = State()
 
 
 @router.message(Command("admin"), IsAdmin())
@@ -467,9 +471,9 @@ async def load_dates(message: Message, bot: Bot):
         await message.answer("Ошибка загрузки позиций")
 
 
-#*******************************
+#***************************************************************************
 # Работа с корзиной для админа
-#******************************
+#**************************************************************************
 @router.callback_query(F.data == "done_carts")
 async def show_done_carts(callback: CallbackQuery) -> None:
     """
@@ -484,7 +488,7 @@ async def show_done_carts(callback: CallbackQuery) -> None:
     await callback.message.answer("Заказы для сбора:", reply_markup=get_entity_kb(entities, Cart))
 
 
-@router.callback_query(F.data.startswith("Cart_"))
+@router.callback_query(F.data.startswith("CartList_"))
 async def show_cart_for_done(callback: CallbackQuery):
     """
     Обработчик просмотра содержимого корзины.
@@ -656,4 +660,196 @@ async def show_issued_carts(callback: CallbackQuery) -> None:
 async def close_cart(callback: CallbackQuery) -> None:
     cart_id = int(callback.data.split("_")[1])
     set_entity_close(session, cart_id, Cart)
+    await callback.message.answer("Заказ выдан клиенту. Работа с данным заказом закончена")
+
+
+#***************************************************************************
+# Работа с заказом для админа
+#**************************************************************************
+@router.callback_query(F.data == "done_orders")
+async def show_done_orders(callback: CallbackQuery) -> None:
+    """
+    Обработчик кнопки просмотра заказов для сбора.
+
+    Получает список заказов, готовых к выдаче, и отображает их.
+
+    Args:
+        callback: Объект callback-запроса
+    """
+    entities = get_entity_for_done(session, Order)
+    await callback.message.answer("Заказы для сбора:", reply_markup=get_entity_kb(entities, Order))
+
+
+@router.callback_query(F.data.startswith("OrderList_"))
+async def show_order_for_done(callback: CallbackQuery):
+    """
+    Обработчик просмотра содержимого корзины.
+
+    Отображает все товары в заказе с деталями и кнопками управления.
+
+    Args:
+        callback: Объект callback-запроса с ID корзины
+    """
+    order_id = int(callback.data.split("_")[1])
+    items = get_entity_items(session, order_id, OrderItems)
+    user_id = callback.from_user.id
+    user_cart_messages[user_id] = []
+    # Вывод всех товаров как отдельные сообщения
+    for item in items:
+        text = (
+            f"🛒 <b>{item.product.name}</b>\n"
+            f"Количество: <b>{item.quantity}</b> {item.product.unit}\n"
+            f"Стоимость: <b>{item.total_price:.2f} ₽</b>"
+        )
+        sent_message = await callback.message.answer(text=text, parse_mode=ParseMode.HTML)
+        user_cart_messages[user_id].append(sent_message.message_id)
+
+    # Отправка кнопок управления заказом в зависимости от подготовки или выдачи заказа
+    if not get_entity_by_id(session,order_id, Order).is_issued:
+        buttons_message = await callback.message.answer(
+            "Выберите действие:",
+            reply_markup=get_admin_confirmentity_kb(order_id, "Order"),
+            parse_mode="Markdown"
+        )
+        user_cart_messages[user_id].append(buttons_message.message_id)
+    else:
+        buttons_message = await callback.message.answer(
+            "Выберите действие:",
+            reply_markup=get_issued_entity(order_id, "Order"),
+            parse_mode="Markdown",
+        )
+        user_cart_messages[user_id].append(buttons_message.message_id)
+
+
+# @router.callback_query(F.data.startswith("Back"))
+# async def go_back(callback: CallbackQuery) -> None:
+#     """
+#     Обработчик кнопки возврата в меню.
+#
+#     Удаляет все сообщения, связанные с текущей корзиной, и очищает историю сообщений.
+#
+#     Args:
+#         callback: Объект callback-запроса с данными кнопки
+#
+#     Returns:
+#         None
+#     """
+#     user_id = callback.from_user.id
+#
+#     if user_id in user_cart_messages:
+#         for mid in user_cart_messages[user_id]:
+#             await callback.bot.delete_message(user_id, mid)
+#         del user_cart_messages[user_id]
+#
+#     await callback.answer("Экран очищен")
+
+
+@router.callback_query(F.data.startswith("OrderDone_"))
+async def get_order_for_done(callback: CallbackQuery) -> None:
+    """
+    Обработчик подтверждения завершения сбора корзины.
+
+    Отображает меню действий с корзиной после подтверждения её сбора.
+
+    Args:
+        callback: Объект callback-запроса с ID корзины в формате "OrderDone_<id>"
+
+    Returns:
+        None
+    """
+    user_id = callback.from_user.id
+    order_id = int(callback.data.split("_")[1])
+    sent_message = await callback.message.edit_text(
+        "Выберите действие:",
+        reply_markup=get_close_entity(order_id, "Order"),
+        parse_mode=ParseMode.HTML
+    )
+    user_cart_messages[user_id].append(sent_message.message_id)
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("OrderDoneMessage_"))
+async def mess_order_for_done(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
+    """
+    Обработчик уведомления клиента о готовности заказа.
+
+    В зависимости от выбранного действия либо сразу уведомляет клиента о готовности заказа,
+    либо запрашивает дополнительный комментарий для уведомления.
+
+    Args:
+        callback: Объект callback-запроса с ID корзины в формате "CartDoneMessage_<id>" или "CartDoneMessage_comm_<id>"
+        state: Контекст состояния FSM для хранения данных между шагами
+        bot: Экземпляр бота для отправки сообщений
+
+    Returns:
+        None
+    """
+    order_id = int(callback.data.split("_")[1]) if callback.data.split("_")[1] != "comm" else int(callback.data.split("_")[2])
+    entity = get_entity_by_id(session, order_id, Order)
+    user = await bot.get_chat(get_costumer_tgid(session, entity.user_id))
+    name = "Клиент" if not user.full_name else user.full_name
+    text = (f"Уважаемый {name}, Ваш заказ №{order_id} направлен поставщику.\n"
+            f"Мы уведомим Вас о его поступлении.")
+    if callback.data.split("_")[1] != "comm":
+        await bot.send_message(chat_id=user.id, text=text)
+        await callback.message.answer(("Клиент уведомлен о заказе \n"
+                                       "заказ перешел в ожидание доставки"))
+        await callback.answer()
+        set_entity_for_issue(session, order_id, Order)
+        return
+    else:
+        await state.update_data(text=text)
+        await state.update_data(user=user)
+        await state.update_data(cart_id=order_id)
+        await callback.message.answer("Введите текст комментария")
+        await state.set_state(CommentStatesOrder.CommentOrder)
+    await callback.answer()
+
+
+@router.message(CommentStatesOrder.CommentOrder)
+async def handle_comment_order(message: Message, state: FSMContext, bot: Bot) -> None:
+    """
+    Обработчик ввода комментария для уведомления клиента.
+
+    Получает комментарий от администратора, добавляет его к уведомлению и отправляет клиенту.
+
+    Args:
+        message: Объект сообщения с комментарием от администратора
+        state: Контекст состояния FSM с данными о заказе и клиенте
+        bot: Экземпляр бота для отправки сообщений
+
+    Returns:
+        None
+    """
+    await state.update_data(comment=message.text)
+    my_data: dict = await state.get_data()
+    user = my_data.get('user')
+    order_id: int = my_data.get('cart_id')
+    text = f"{my_data.get('text')} \n {my_data.get('comment')}"
+    await bot.send_message(chat_id=user.id, text=text)
+    await message.answer("Клиент уведомлен о заказе \n"
+                         "заказ перешел в ожидание доставки")
+    set_entity_for_issue(session, order_id, Order)
+
+
+@router.callback_query(F.data == "issued_orders")
+async def show_issued_orders(callback: CallbackQuery) -> None:
+    """
+    Обработчик кнопки просмотра заказов для выдачи клиенту.
+
+    Получает список заказов, готовых к выдаче, и отображает их.
+
+    Args:
+        callback: Объект callback-запроса
+    """
+    entities = get_entity_for_issued(session, Order)
+    await callback.message.answer(
+        "Заказы для выдачи:", reply_markup=get_entity_kb(entities, Order)
+    )
+
+
+@router.callback_query(F.data.startswith("OrderClose_"))
+async def close_order(callback: CallbackQuery) -> None:
+    order_id = int(callback.data.split("_")[1])
+    set_entity_close(session, order_id, Order)
     await callback.message.answer("Заказ выдан клиенту. Работа с данным заказом закончена")

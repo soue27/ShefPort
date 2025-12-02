@@ -19,8 +19,8 @@ def main_kb() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text=f"{count_cart} - {text_cart.capitalize()} для сбора", callback_data="done_carts"),
                 InlineKeyboardButton(text=f"{count_cart_issued} - {text_cart.capitalize()} для выдачи" , callback_data="issued_carts"),
-                InlineKeyboardButton(text=f"{count_order} - {text_order.capitalize()} для сбора", callback_data="done_order"),
-                InlineKeyboardButton(text=f"{count_order_issued} - {text_order.capitalize()} для выдачи" , callback_data="issued_order"),
+                InlineKeyboardButton(text=f"{count_order} - {text_order.capitalize()} для сбора", callback_data="done_orders"),
+                InlineKeyboardButton(text=f"{count_order_issued} - {text_order.capitalize()} для выдачи" , callback_data="issued_orders"),
                 InlineKeyboardButton(text=f"{count2} - {text2.capitalize()}", callback_data="check_questions"),
                 InlineKeyboardButton(text="Рассылка", callback_data="mailing"))
     builder.adjust(2)
@@ -59,7 +59,7 @@ def mailing_kb():
 def confirm_kb():
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Отправить", callback_data="mailing_confirm"),
-                InlineKeyboardButton(text=f"Изменить", callback_data="mailing_cancel"))
+                InlineKeyboardButton(text="Изменить", callback_data="mailing_cancel"))
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
 
 
@@ -72,7 +72,7 @@ def get_entity_kb(entities, model):
         text = "Заказ"
         call = "Order"
     for entity in entities:
-        builder.button(text=f"{text} №{entity.id}", callback_data=f"{call}_{entity.id}")
+        builder.button(text=f"{text} №{entity.id}", callback_data=f"{call}List_{entity.id}")
         builder.adjust(1)
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
 
@@ -83,7 +83,7 @@ def get_admin_confirmentity_kb(entity_id, model):
         text = "✅ Готов к выдаче"
         call = "Cart"
     else:
-        text = "✅  Произведен заказ"
+        text = "✅ Для заказа"
         call = "Order"
     builder.row(InlineKeyboardButton(text=f"{text} №{entity_id}", callback_data=f"{call}Done_{entity_id}"),
                 InlineKeyboardButton(text="🔙 Назад", callback_data="Back"))
