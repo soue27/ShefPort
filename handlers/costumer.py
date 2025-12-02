@@ -7,7 +7,7 @@ It handles product categories display, product search, and related commands.
 from aiogram import Router, F, types, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 
 from database.db import session, get_all_categories, search_products, save_question, get_all_admin
 
@@ -18,7 +18,7 @@ from handlers.search_helpers import (
     search_states,
     SearchState
 )
-from keyboards.categorieskb import get_categories_kb
+from keyboards.categorieskb import get_categories_kb, get_exit_search_kb
 
 router = Router(name='costumer')
 
@@ -100,17 +100,19 @@ async def get_search(message: Message, state: FSMContext):
     products = search_products(session=session, query=search_query)
     
     if not products:
-        await message.answer(f"К сожалению, товары по запросу '{search_query}' не найдены. Попробуйте изменить запрос.")
+        await message.answer(f"К сожалению, товары по запросу '{search_query}' не найдены. Попробуйте изменить запрос.",
+                             reply_markup=get_exit_search_kb())
         await state.set_state(SearchProduct.search_word)
         return
     
     # Сохраняем состояние поиска
+
     user_id = message.from_user.id
     search_states[user_id] = SearchState(
         query=search_query,
         products=products
     )
-    
+    print("We are here")
     # Отправляем первую порцию товаров
     await send_search_results_batch(message, products, offset=0)
     await state.clear()
@@ -142,10 +144,16 @@ async def get_message(message: Message, state: FSMContext, bot: Bot):
     """
     print (message.from_user.id, message.message_id, message.text)
     save_question(session, message.from_user.id, message.message_id, message.text)
-    await message.answer(f"Спасибо, за Ваше сообщение. Мы ответим в ближайшее время!")
+    await message.answer("Спасибо, за Ваше сообщение. Мы ответим в ближайшее время!")
     admins = get_all_admin(session)
     for admin in admins:
         await bot.send_message(chat_id=admin, text=f"Получено сообщение от {message.from_user.full_name}: {message.text[:20]}")
+    await state.clear()
+
+
+@router.callback_query(F.data == 'exit_search')
+async def exit_search(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer("Для повтора поиска нажмите 🔎 Поиск товара")
     await state.clear()
 
 

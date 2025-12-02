@@ -55,3 +55,9 @@ def get_categories_kb(categories: list, page: int = 0) -> InlineKeyboardMarkup:
         builder.row(*nav_buttons)
 
     return builder.as_markup()
+
+
+def get_exit_search_kb():
+    builder = InlineKeyboardBuilder()
+    builder.button(text="❌Выйти", callback_data="exit_search")
+    return builder.as_markup()
