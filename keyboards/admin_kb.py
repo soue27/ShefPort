@@ -86,7 +86,7 @@ def get_admin_confirmentity_kb(entity_id, model):
         text = "✅  Произведен заказ"
         call = "Order"
     builder.row(InlineKeyboardButton(text=f"{text} №{entity_id}", callback_data=f"{call}Done_{entity_id}"),
-                InlineKeyboardButton(text=f"🔙 Назад", callback_data="Back"))
+                InlineKeyboardButton(text="🔙 Назад", callback_data="Back"))
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
 
 
@@ -96,8 +96,19 @@ def get_close_entity(entity_id, model):
         call = "Cart"
     else:
         call = "Order"
-    builder.row(InlineKeyboardButton(text=f"📝 Уведомить клиента", callback_data=f"{call}DoneMessage_{entity_id}"),
-                InlineKeyboardButton(text=f"➕ комментарий", callback_data=f"{call}DoneMessage_comm_{entity_id}"),
-                InlineKeyboardButton(text=f"🔙 Назад", callback_data="Back"))
+    builder.row(InlineKeyboardButton(text="📝 Уведомить клиента", callback_data=f"{call}DoneMessage_{entity_id}"),
+                InlineKeyboardButton(text="➕ комментарий", callback_data=f"{call}DoneMessage_comm_{entity_id}"),
+                InlineKeyboardButton(text="🔙 Назад", callback_data="Back"))
     builder.adjust(2)
+    return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
+
+
+def get_issued_entity(entity_id, model):
+    builder = InlineKeyboardBuilder()
+    if model == "Cart":
+        call = "Cart"
+    else:
+        call = "Order"
+    builder.row(InlineKeyboardButton(text="Заказ выдан клиенту", callback_data=f"{call}Close_{entity_id}"),
+                InlineKeyboardButton(text="🔙 Назад", callback_data="Back"))
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)

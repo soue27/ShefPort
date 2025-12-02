@@ -463,8 +463,23 @@ def set_entity_for_issue(session: Session, id, model):
     stmt = (
         update(model)
             .where(model.id == id)
-            .values(is_done=False, is_issued=True)
+            .values(is_done=False, is_issued=True, is_done_at=datetime.now())
         )
+    session.execute(stmt)
+    session.commit()
+    return session.get(model, id)
+
+
+def get_entity_for_issued(session: Session, model):
+    """Получение элемента корзины Cart, Order для подготовки"""
+    stmt = select(model).where(model.is_issued == True).order_by(model.id)
+    result = session.scalars(stmt).all()
+    return result
+
+
+def set_entity_close(session: Session, id, model):
+    """Закрывает корзину Cart, Order после выдачи товара"""
+    stmt = update(model).where(model.id == id).values(is_issued=False, is_issued_at=True)
     session.execute(stmt)
     session.commit()
     return session.get(model, id)

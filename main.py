@@ -8,7 +8,7 @@ import logging
 from aiogram.fsm.storage.memory import MemoryStorage
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from data.config import BOT_TOKEN, DB_URL, ECHO
+from data.config import BOT_TOKEN
 from handlers import user_start, costumer, products, catalog, admin, orders, carts
 from services.mail_checker import check_mail_and_download
 

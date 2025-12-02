@@ -1,3 +1,28 @@
+"""
+Модуль обработчиков административных команд и функций бота.
+
+Этот модуль содержит обработчики для административной части бота, включая:
+- Управление вопросами и ответами пользователей
+- Рассылку сообщений (текстовые и с изображениями)
+- Управление заказами и корзинами
+- Загрузку данных из файлов
+
+Основные компоненты:
+- Роутер: router - основной роутер для административных команд
+- Состояния: Классы состояний для FSM (AnswerQuestion, TextMailing, ImageMailing, MailingStates, CommentStates)
+- Обработчики: Функции, обрабатывающие команды и сообщения администратора
+
+Основные параметры, используемые в обработчиках:
+- callback: CallbackQuery - объект callback-запроса от кнопок
+- message: Message - объект сообщения от пользователя
+- state: FSMContext - контекст конечного автомата состояний
+- bot: Bot - экземпляр бота для отправки сообщений
+- callback.data: str - данные callback-запроса, содержащие команду и параметры
+
+Пример использования:
+    Для добавления нового обработчика используйте декоратор @router с указанием типа обновления,
+    например: @router.message(Command("команда")) или @router.callback_query(F.data == "действие")
+"""
 
 from aiogram import Router, F, Bot
 from aiogram.enums import ParseMode
@@ -5,15 +30,37 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.filters import Command
-from sqlalchemy.util import await_only
 
 from data.config import SUPERADMIN_ID
-from database.db import get_new_questions, session, get_question_by_id, save_answer, get_all_costumer_for_mailing, \
-    save_news, load_data, engine, get_entity_for_done, get_entity_items, get_entity_by_id, get_costumer_tgid, \
-    set_entity_for_issue
+from database.db import (
+    get_new_questions,
+    session,
+    get_question_by_id,
+    save_answer,
+    get_all_costumer_for_mailing,
+    save_news,
+    load_data,
+    engine,
+    get_entity_for_done,
+    get_entity_items,
+    get_entity_by_id,
+    get_costumer_tgid,
+    set_entity_for_issue,
+    get_entity_for_issued,
+    set_entity_close,
+)
 from database.models import Cart, CartItems
-from keyboards.admin_kb import main_kb, check_questions, get_questions, mailing_kb, confirm_kb, get_entity_kb, \
-    get_admin_confirmentity_kb, get_close_entity
+from keyboards.admin_kb import (
+    main_kb,
+    check_questions,
+    get_questions,
+    mailing_kb,
+    confirm_kb,
+    get_entity_kb,
+    get_admin_confirmentity_kb,
+    get_close_entity,
+    get_issued_entity,
+)
 from services.filters import IsAdmin
 
 
@@ -103,7 +150,7 @@ async def show_questions(callback: CallbackQuery) -> None:
 
 
 @router.callback_query(F.data == "new_questions")
-async def show_questions(callback: CallbackQuery) -> None:
+async def show_new_questions(callback: CallbackQuery) -> None:
     """
     Обработчик кнопки просмотра новых сообщений.
     
@@ -137,7 +184,7 @@ async def get_answer(callback: CallbackQuery, state: FSMContext) -> None:
     # Вывод сервисных сообщений админу
     await callback.message.delete()
     await callback.message.answer(f"Сообщение: {question.text}")
-    await callback.message.answer(f"Введите ответ")
+    await callback.message.answer("Введите ответ")
     await state.set_state(AnswerQuestion.answer)
 
 
@@ -184,7 +231,7 @@ async def send_news(data: dict, users: list, bot: Bot):
     if data["url"] not in ("нет", "Нет"):
         url_text = f'<a href="{data["url"]}">Подробнее...</a>'
     else:
-        url_text = f'<a href="https://vk.com/fish_chus">Наша группа ВК</a>'
+        url_text = '<a href="https://vk.com/fish_chus">Наша группа ВК</a>'
     if data['type'] == 'image':
         for user in users:
             await bot.send_photo(chat_id=user, photo=data['photo'], caption=mypost)
@@ -358,7 +405,7 @@ async def handle_texttimageurl(message: Message, state: FSMContext, bot: Bot):
 
 
 @router.callback_query(F.data.startswith("mailing_"), MailingStates.waiting_confirmation)
-async def show_mailing_types(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
+async def show_mailing_confirm(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
     """
     Обработчик подтверждения или отмены рассылки.
     
@@ -417,14 +464,14 @@ async def load_dates(message: Message, bot: Bot):
     if count != 0:
         await message.answer(f"Загружено {count} позиций")
     else:
-        await message.answer(f"Ошибка загрузки позиций")
+        await message.answer("Ошибка загрузки позиций")
 
 
 #*******************************
 # Работа с корзиной для админа
 #******************************
 @router.callback_query(F.data == "done_carts")
-async def show_questions(callback: CallbackQuery) -> None:
+async def show_done_carts(callback: CallbackQuery) -> None:
     """
     Обработчик кнопки просмотра заказов для сбора.
     
@@ -451,7 +498,6 @@ async def show_cart_for_done(callback: CallbackQuery):
     items = get_entity_items(session, cart_id, CartItems)
     user_id = callback.from_user.id
     user_cart_messages[user_id] = []
-    
     # Вывод всех товаров как отдельные сообщения
     for item in items:
         text = (
@@ -462,42 +508,63 @@ async def show_cart_for_done(callback: CallbackQuery):
         sent_message = await callback.message.answer(text=text, parse_mode=ParseMode.HTML)
         user_cart_messages[user_id].append(sent_message.message_id)
     
-    # Отправка кнопок управления заказом
-    buttons_message = await callback.message.answer(
-        "Выберите действие:",
-        reply_markup=get_admin_confirmentity_kb(cart_id, "Cart"),
-        parse_mode="Markdown"
-    )
-    user_cart_messages[user_id].append(buttons_message.message_id)
-
-    # Опционально: также сохраняем chat_id для корректного удаления
-    user_cart_messages[user_id].append({"chat_id": callback.message.chat.id})
+    # Отправка кнопок управления заказом в зависимости от подготовки или выдачи заказа
+    if not get_entity_by_id(session, cart_id, Cart).is_issued:
+        buttons_message = await callback.message.answer(
+            "Выберите действие:",
+            reply_markup=get_admin_confirmentity_kb(cart_id, "Cart"),
+            parse_mode="Markdown"
+        )
+        user_cart_messages[user_id].append(buttons_message.message_id)
+    else:
+        buttons_message = await callback.message.answer(
+            "Выберите действие:",
+            reply_markup=get_issued_entity(cart_id, "Cart"),
+            parse_mode="Markdown",
+        )
+        user_cart_messages[user_id].append(buttons_message.message_id)
 
 
 @router.callback_query(F.data.startswith("Back"))
-async def go_back(callback: CallbackQuery):
+async def go_back(callback: CallbackQuery) -> None:
+    """
+    Обработчик кнопки возврата в меню.
+    
+    Удаляет все сообщения, связанные с текущей корзиной, и очищает историю сообщений.
+    
+    Args:
+        callback: Объект callback-запроса с данными кнопки
+        
+    Returns:
+        None
+    """
     user_id = callback.from_user.id
 
     if user_id in user_cart_messages:
         for mid in user_cart_messages[user_id]:
-            try:
-                await callback.bot.delete_message(user_id, mid)
-            except:
-                pass
+            await callback.bot.delete_message(user_id, mid)
         del user_cart_messages[user_id]
 
     await callback.answer("Экран очищен")
 
 
 @router.callback_query(F.data.startswith("CartDone_"))
-async def show_cart_for_done(callback: CallbackQuery):
-    """Обработка процесса окончания сбора корзины"""
+async def get_cart_for_done(callback: CallbackQuery) -> None:
+    """
+    Обработчик подтверждения завершения сбора корзины.
+    
+    Отображает меню действий с корзиной после подтверждения её сбора.
+    
+    Args:
+        callback: Объект callback-запроса с ID корзины в формате "CartDone_<id>"
+        
+    Returns:
+        None
+    """
     user_id = callback.from_user.id
     cart_id = int(callback.data.split("_")[1])
-    print('Cart is Done', cart_id)
-    entity = get_entity_by_id(session, cart_id, Cart)
     sent_message = await callback.message.edit_text(
-        f"Выберите действие:",
+        "Выберите действие:",
         reply_markup=get_close_entity(cart_id, "Cart"),
         parse_mode=ParseMode.HTML
     )
@@ -506,8 +573,21 @@ async def show_cart_for_done(callback: CallbackQuery):
 
 
 @router.callback_query(F.data.startswith("CartDoneMessage_"))
-async def show_cart_for_done(callback: CallbackQuery, state: FSMContext, bot: Bot):
-    """Обработка процесса уведомления клиента о готовности корзины к выдаче"""
+async def mess_cart_for_done(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
+    """
+    Обработчик уведомления клиента о готовности заказа.
+    
+    В зависимости от выбранного действия либо сразу уведомляет клиента о готовности заказа,
+    либо запрашивает дополнительный комментарий для уведомления.
+    
+    Args:
+        callback: Объект callback-запроса с ID корзины в формате "CartDoneMessage_<id>" или "CartDoneMessage_comm_<id>"
+        state: Контекст состояния FSM для хранения данных между шагами
+        bot: Экземпляр бота для отправки сообщений
+        
+    Returns:
+        None
+    """
     cart_id = int(callback.data.split("_")[1]) if callback.data.split("_")[1] != "comm" else int(callback.data.split("_")[2])
     entity = get_entity_by_id(session, cart_id, Cart)
     user = await bot.get_chat(get_costumer_tgid(session, entity.user_id))
@@ -516,8 +596,8 @@ async def show_cart_for_done(callback: CallbackQuery, state: FSMContext, bot: Bo
             f"Ждем Вас в нашем магазине.")
     if callback.data.split("_")[1] != "comm":
         await bot.send_message(chat_id=user.id, text=text)
-        await callback.message.answer((f"Клиент уведомлен о готовности заказа \n"
-                                       f"заказ перешел в категорию 'Для выдачи'"))
+        await callback.message.answer(("Клиент уведомлен о готовности заказа \n"
+                                       "заказ перешел в категорию 'Для выдачи'"))
         await callback.answer()
         set_entity_for_issue(session, cart_id, Cart)
         return
@@ -531,28 +611,49 @@ async def show_cart_for_done(callback: CallbackQuery, state: FSMContext, bot: Bo
 
 
 @router.message(CommentStates.Comment)
-async def handle_imageurl(message: Message, state: FSMContext, bot: Bot):
+async def handle_comment(message: Message, state: FSMContext, bot: Bot) -> None:
+    """
+    Обработчик ввода комментария для уведомления клиента.
+    
+    Получает комментарий от администратора, добавляет его к уведомлению и отправляет клиенту.
+    
+    Args:
+        message: Объект сообщения с комментарием от администратора
+        state: Контекст состояния FSM с данными о заказе и клиенте
+        bot: Экземпляр бота для отправки сообщений
+        
+    Returns:
+        None
+    """
     await state.update_data(comment=message.text)
-    my_data = await state.get_data()
+    my_data: dict = await state.get_data()
     user = my_data.get('user')
-    cart_id = my_data.get('cart_id')
-    user_id = user.id
-    print(user_id)
+    cart_id: int = my_data.get('cart_id')
     text = f"{my_data.get('text')} \n {my_data.get('comment')}"
     await bot.send_message(chat_id=user.id, text=text)
-    await message.answer((f"Клиент уведомлен о готовности заказа. \n"
-                                   f"Заказ перешел в категорию 'Для выдачи'"))
+    await message.answer(("Клиент уведомлен о готовности заказа. \n"
+                          "Заказ перешел в категорию 'Для выдачи'"))
     set_entity_for_issue(session, cart_id, Cart)
 
 
-# @router.callback_query()
-# async def test(callback: CallbackQuery):
-#     """
-#     Тестовый обработчик для отладки callback-запросов.
-#
-#     Выводит в консоль данные полученного callback-запроса.
-#
-#     Args:
-#         callback: Объект callback-запроса
-#     """
-#     print(callback.data)
+@router.callback_query(F.data == "issued_carts")
+async def show_issued_carts(callback: CallbackQuery) -> None:
+    """
+    Обработчик кнопки просмотра заказов для выдачи клиенту.
+
+    Получает список заказов, готовых к выдаче, и отображает их.
+
+    Args:
+        callback: Объект callback-запроса
+    """
+    entities = get_entity_for_issued(session, Cart)
+    await callback.message.answer(
+        "Заказы для выдачи:", reply_markup=get_entity_kb(entities, Cart)
+    )
+
+
+@router.callback_query(F.data.startswith("CartClose_"))
+async def close_cart(callback: CallbackQuery) -> None:
+    cart_id = int(callback.data.split("_")[1])
+    set_entity_close(session, cart_id, Cart)
+    await callback.message.answer("Заказ выдан клиенту. Работа с данным заказом закончена")
