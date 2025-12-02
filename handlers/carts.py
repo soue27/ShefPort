@@ -107,6 +107,7 @@ async def show_carts(message: Message):
         parse_mode="Markdown"
     )
     user_cart_messages[message.from_user.id].append(final_msg.message_id)
+    print(user_cart_messages)
 
 
 # -------------------------------------------------------

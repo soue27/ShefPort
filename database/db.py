@@ -14,6 +14,7 @@ from datetime import datetime
 from typing import Type, Optional, List, Any
 
 import pandas as pd
+from mypy.nodes import TryStmt
 from sqlalchemy import select, func, Engine, types, update, delete
 from aiogram.types import CallbackQuery
 from sqlalchemy import create_engine
@@ -167,6 +168,19 @@ def get_costumer_id(session: Session, user_id: int):
     :return: ID of the costumer
     """
     stmt = select(Costumer.id).where(Costumer.tg_id == user_id)
+    result = session.scalar(stmt)
+    return result
+
+
+def get_costumer_tgid(session: Session, user_id: int):
+    """
+    Fetches the TG ID of a specific costumer.
+
+    :param session: SQLAlchemy session for database operations
+    :param user_id: ID of the costumer to fetch ID for
+    :return: ID of the costumer
+    """
+    stmt = select(Costumer.tg_id).where(Costumer.id == user_id)
     result = session.scalar(stmt)
     return result
 
@@ -415,6 +429,7 @@ def confirm_entity(session: Session, cart_id: int, model):
     session.commit()
     return session.get(model, cart_id)
 
+
 def delete_entity(session: Session, item_id: int, model):
     """Удаляет  корзину Cart, Order"""
     stmt = delete(model).where(model.id == item_id)
@@ -434,6 +449,25 @@ def get_entity_by_id(session: Session, item_id: int, model):
     stmt = select(model).where(model.id == item_id)
     result = session.execute(stmt).scalar_one_or_none()  # Получаем один объект или None
     return result
+
+
+def get_entity_for_done(session: Session, model):
+    """Получение элемента корзины Cart, Order для подготовки"""
+    stmt = select(model).where(model.is_done == True).order_by(model.id)
+    result = session.scalars(stmt).all()
+    return result
+
+
+def set_entity_for_issue(session: Session, id, model):
+    """Устанавливает признак готовности Cart, Order для выдачи товара"""
+    stmt = (
+        update(model)
+            .where(model.id == id)
+            .values(is_done=False, is_issued=True)
+        )
+    session.execute(stmt)
+    session.commit()
+    return session.get(model, id)
 ##########################################
 #раздел работы с корзиной покупок и заказов
 ##########################################

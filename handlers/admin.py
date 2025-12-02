@@ -1,5 +1,6 @@
 
 from aiogram import Router, F, Bot
+from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery, FSInputFile
@@ -8,25 +9,50 @@ from sqlalchemy.util import await_only
 
 from data.config import SUPERADMIN_ID
 from database.db import get_new_questions, session, get_question_by_id, save_answer, get_all_costumer_for_mailing, \
-    save_news, load_data, engine
-from keyboards.admin_kb import main_kb, check_questions, get_questions, mailing_kb, confirm_kb
+    save_news, load_data, engine, get_entity_for_done, get_entity_items, get_entity_by_id, get_costumer_tgid, \
+    set_entity_for_issue
+from database.models import Cart, CartItems
+from keyboards.admin_kb import main_kb, check_questions, get_questions, mailing_kb, confirm_kb, get_entity_kb, \
+    get_admin_confirmentity_kb, get_close_entity
 from services.filters import IsAdmin
 
 
 router = Router(name='admin')
 
+user_cart_messages = {}
+
 
 class AnswerQuestion(StatesGroup):
+    """
+    Состояния для обработки ответов на вопросы пользователей.
+    """
     answer = State()
 
 
 class TextMailing(StatesGroup):
+    """
+    Состояния для текстовой рассылки.
+    
+    Атрибуты:
+        title: Состояние для ввода заголовка рассылки
+        post: Состояние для ввода текста рассылки
+        url: Состояние для ввода ссылки в рассылке
+    """
     title = State()
     post = State()
     url = State()
 
 
 class ImageMailing(StatesGroup):
+    """
+    Состояния для рассылки с изображением.
+    
+    Атрибуты:
+        title: Состояние для ввода заголовка
+        post: Состояние для ввода текста
+        url: Состояние для ввода ссылки
+        image_url: Состояние для загрузки изображения
+    """
     title = State()
     post = State()
     url = State()
@@ -34,39 +60,81 @@ class ImageMailing(StatesGroup):
 
 
 class MailingStates(StatesGroup):
+    """
+    Состояния для процесса рассылки.
+    
+    Атрибуты:
+        waiting_content: Ожидание контента для рассылки
+        waiting_confirmation: Ожидание подтверждения рассылки
+    """
     waiting_content = State()
     waiting_confirmation = State()
 
 
+class CommentStates(StatesGroup):
+    Comment = State()
+
+
 @router.message(Command("admin"), IsAdmin())
 async def admin_start(message: Message) -> None:
-    """Обработка команды /admin"""
+    """
+    Обработчик команды /admin.
+    
+    Приветствует администратора и отображает главное меню.
+    
+    Args:
+        message: Объект сообщения от пользователя
+    """
     await message.answer(f"Привет! Добро пожаловать Админ {message.from_user.full_name}", reply_markup=main_kb())
 
 
 @router.callback_query(F.data == "check_questions")
 async def show_questions(callback: CallbackQuery) -> None:
-    """Обработка кнопки check_questions"""
+    """
+    Обработчик кнопки проверки вопросов.
+    
+    Удаляет предыдущее сообщение и отображает список сообщений.
+    
+    Args:
+        callback: Объект callback-запроса
+    """
     await callback.message.delete()
     await callback.message.answer("Сообщения:", reply_markup=check_questions())
 
 
 @router.callback_query(F.data == "new_questions")
 async def show_questions(callback: CallbackQuery) -> None:
-    """Обработка кнопки просмотра новых сообщений"""
+    """
+    Обработчик кнопки просмотра новых сообщений.
+    
+    Получает новые вопросы из базы данных и отображает их.
+    
+    Args:
+        callback: Объект callback-запроса
+    """
     questions = get_new_questions(session)
     await callback.message.answer("Сообщения:", reply_markup=get_questions(questions))
 
 
 @router.callback_query(F.data.startswith("question_"))
 async def get_answer(callback: CallbackQuery, state: FSMContext) -> None:
+    """
+    Обработчик выбора вопроса для ответа.
+    
+    Извлекает ID вопроса из callback-данных, загружает вопрос из базы данных
+    и переводит бота в состояние ожидания ответа.
+    
+    Args:
+        callback: Объект callback-запроса
+        state: Контекст состояния FSM
+    """
     questions_id = int(callback.data.split("_")[1])
     question = get_question_by_id(session, questions_id)
-    #Сохранение данных в state, для передачи в следующую функцию
+    # Сохранение данных в state, для передачи в следующую функцию
     await state.update_data(questions_id=question.id)
     await state.update_data(tg_id=question.user_id)
     await state.update_data(question_text=question.text)
-    #Вывод сервисных сообщений админу
+    # Вывод сервисных сообщений админу
     await callback.message.delete()
     await callback.message.answer(f"Сообщение: {question.text}")
     await callback.message.answer(f"Введите ответ")
@@ -77,17 +145,18 @@ async def get_answer(callback: CallbackQuery, state: FSMContext) -> None:
 async def handle_answer(message: Message, state: FSMContext, bot: Bot) -> None:
     """
     Обработка ответа админа на сообщение пользователя отправка
-
-    :param message: Message - сообщение от пользователя
-    :param state: FSMContext - контекст FSM
-    :param bot: Bot - бот, который отправляет сообщения
+    
+    Args:
+        message: Message - сообщение от пользователя
+        state: FSMContext - контекст FSM
+        bot: Bot - бот, который отправляет сообщения
     """
-    #Получение данных из стейта
+    # Получение данных из стейта
     data = await state.get_data()
     text_otveta = message.text
     questions_id = data.get('questions_id')
     tg_id = data.get('tg_id')
-    #Подготовка текста ответа
+    # Подготовка текста ответа
     vopros = data.get('question_text')
     start = f"Ответ от администрации на Ваш вопрос: {vopros}:"
     # Отправка ответа и сохранение ответа в БД
@@ -100,12 +169,15 @@ async def handle_answer(message: Message, state: FSMContext, bot: Bot) -> None:
     await state.clear()
 
 
-#Обработка ввода и отправки рассылок
+# Обработка ввода и отправки рассылок
 async def send_news(data: dict, users: list, bot: Bot):
-    """Функция для рассылки новостей, также исполльзуется для предпросмотра.
-    :param data - словарь с данными.
-    :param users - списко рассылки, для предпросмотра используется один айди.
-    :param bot - экземплыр класса.
+    """
+    Функция для рассылки новостей, также исполльзуется для предпросмотра.
+    
+    Args:
+        data: Словарь с данными для рассылки
+        users: Список пользователей для рассылки
+        bot: Экземпляр бота для отправки сообщений
     """
     mypost = (f"<b>{data['title']}</b>\n"
               f"{data['post']})\n")
@@ -116,27 +188,42 @@ async def send_news(data: dict, users: list, bot: Bot):
     if data['type'] == 'image':
         for user in users:
             await bot.send_photo(chat_id=user, photo=data['photo'], caption=mypost)
-            await bot.send_message(chat_id=user, text=url_text ,  disable_web_page_preview=True)
+            await bot.send_message(chat_id=user, text=url_text, disable_web_page_preview=True)
     elif data['type'] == 'film':
         for user in users:
             await bot.send_video(chat_id=user, video=data['photo'], caption=mypost)
             await bot.send_message(chat_id=user, text=url_text, disable_web_page_preview=True)
     else:
         for user in users:
-            await bot.send_message(chat_id=user, text=f"{mypost} {url_text}" ,  disable_web_page_preview=True)
+            await bot.send_message(chat_id=user, text=f"{mypost} {url_text}", disable_web_page_preview=True)
     # save_news(session, data)
-
 
 
 @router.callback_query(F.data == "mailing")
 async def show_mailing_types(callback: CallbackQuery) -> None:
-    """Обработка нажатия ккнопки Расслыка в меню"""
+    """
+    Обработчик кнопки "Рассылка" в меню.
+    
+    Отображает доступные форматы постов для рассылки.
+    
+    Args:
+        callback: Объект callback-запроса
+    """
     await callback.message.answer("Выберите формат поста", reply_markup=mailing_kb())
 
 
 @router.callback_query(F.data.startswith("post_"))
 async def show_mailing(callback: CallbackQuery, state: FSMContext) -> None:
-    """Обработка ввода текста заголовка"""
+    """
+    Обработчик выбора типа поста для рассылки.
+    
+    В зависимости от выбранного типа поста (текст/изображение) переводит
+    бота в соответствующее состояние для ввода заголовка.
+    
+    Args:
+        callback: Объект callback-запроса
+        state: Контекст состояния FSM
+    """
     await callback.message.answer("Введите заголовок сообщения:")
     if callback.data.split("_")[1] == 'text':
         await state.set_state(TextMailing.title)
@@ -146,7 +233,15 @@ async def show_mailing(callback: CallbackQuery, state: FSMContext) -> None:
 
 @router.message(TextMailing.title)
 async def handle_texttitle(message: Message, state: FSMContext):
-    """Обработка ввода текста поста"""
+    """
+    Обработчик ввода заголовка текстовой рассылки.
+    
+    Сохраняет заголовок в состояние и запрашивает текст поста.
+    
+    Args:
+        message: Объект сообщения от пользователя
+        state: Контекст состояния FSM
+    """
     await state.update_data(title=message.text)
     await message.answer("Введите текст поста:")
     await state.set_state(TextMailing.post)
@@ -154,7 +249,15 @@ async def handle_texttitle(message: Message, state: FSMContext):
 
 @router.message(TextMailing.post)
 async def handle_textpost(message: Message, state: FSMContext):
-    """Обработка ввода внешней ссылки"""
+    """
+    Обработчик ввода текста поста для рассылки.
+    
+    Сохраняет текст поста в состояние и запрашивает ссылку.
+    
+    Args:
+        message: Объект сообщения от пользователя
+        state: Контекст состояния FSM
+    """
     await state.update_data(post=message.text)
     await message.answer("Добавьте ссылку на пост")
     await state.set_state(TextMailing.url)
@@ -162,14 +265,18 @@ async def handle_textpost(message: Message, state: FSMContext):
 
 @router.message(TextMailing.url)
 async def handle_texturl(message: Message, state: FSMContext, bot: Bot):
-    """Обработка поста, отправка и сохранение поста"""
+    """
+    Обработчик ввода ссылки для текстовой рассылки.
+    
+    Сохраняет ссылку, отправляет предпросмотр и запрашивает подтверждение.
+    
+    Args:
+        message: Объект сообщения от пользователя
+        state: Контекст состояния FSM
+        bot: Экземпляр бота для отправки сообщений
+    """
     await state.update_data(url=message.text)
     await state.update_data(type='text')
-    # mypost = (f"<b>{my_data['title']}</b>\n"
-    #           f"{my_data['post']})\n")
-    # if my_data["url"] not in ("нет", "Нет"):
-    #     mypost += f'<a href="{my_data["url"]}">Подробнее...</a>'
-    # await message.answer(mypost, reply_markup=confirm_kb(), disable_web_page_preview=True)
     my_data = await state.get_data()
     user = [message.from_user.id]
     await send_news(my_data, user, bot)
@@ -180,7 +287,15 @@ async def handle_texturl(message: Message, state: FSMContext, bot: Bot):
 
 @router.message(ImageMailing.title)
 async def handle_imagetitle(message: Message, state: FSMContext):
-    """Обработка ввода текста поста"""
+    """
+    Обработчик ввода заголовка для рассылки с изображением.
+    
+    Сохраняет заголовок и запрашивает текст поста.
+    
+    Args:
+        message: Объект сообщения от пользователя
+        state: Контекст состояния FSM
+    """
     await state.update_data(title=message.text)
     await message.answer("Введите текст поста:")
     await state.set_state(ImageMailing.post)
@@ -188,7 +303,15 @@ async def handle_imagetitle(message: Message, state: FSMContext):
 
 @router.message(ImageMailing.post)
 async def handle_imagepost(message: Message, state: FSMContext):
-    """Обработка ввода внешней ссылки"""
+    """
+    Обработчик ввода текста поста для рассылки с изображением.
+    
+    Сохраняет текст поста и запрашивает ссылку.
+    
+    Args:
+        message: Объект сообщения от пользователя
+        state: Контекст состояния FSM
+    """
     await state.update_data(post=message.text)
     await message.answer("Добавьте ссылку на пост")
     await state.set_state(ImageMailing.url)
@@ -196,7 +319,15 @@ async def handle_imagepost(message: Message, state: FSMContext):
 
 @router.message(ImageMailing.url)
 async def handle_imageurl(message: Message, state: FSMContext):
-    """Обработка ввода изображения"""
+    """
+    Обработчик ввода ссылки для рассылки с изображением.
+    
+    Сохраняет ссылку и запрашивает изображение или видео.
+    
+    Args:
+        message: Объект сообщения от пользователя
+        state: Контекст состояния FSM
+    """
     await state.update_data(url=message.text)
     await message.answer("Добавьте фото/видео")
     await state.set_state(ImageMailing.image_url)
@@ -204,7 +335,16 @@ async def handle_imageurl(message: Message, state: FSMContext):
 
 @router.message(ImageMailing.image_url, F.photo | F.video)
 async def handle_texttimageurl(message: Message, state: FSMContext, bot: Bot):
-    """Обработка поста, отправка и сохранение поста"""
+    """
+    Обработчик загрузки изображения или видео для рассылки.
+    
+    Сохраняет изображение или видео, отправляет предпросмотр и запрашивает подтверждение.
+    
+    Args:
+        message: Объект сообщения от пользователя
+        state: Контекст состояния FSM
+        bot: Экземпляр бота для отправки сообщений
+    """
     if message.photo:
         await state.update_data(photo=message.photo[-1].file_id, type="image")
     else:
@@ -214,13 +354,22 @@ async def handle_texttimageurl(message: Message, state: FSMContext, bot: Bot):
     await send_news(my_data, user, bot)
     await state.set_state(MailingStates.waiting_confirmation)
     await state.update_data(mailing_content=my_data)
-    await message.answer("Подтвердите для рассылки",reply_markup=confirm_kb())
+    await message.answer("Подтвердите для рассылки", reply_markup=confirm_kb())
 
 
 @router.callback_query(F.data.startswith("mailing_"), MailingStates.waiting_confirmation)
 async def show_mailing_types(callback: CallbackQuery, state: FSMContext, bot: Bot) -> None:
-    """Обработка нажатия кнопки Рассылка в меню"""
-    # Получаем сохраненные данные
+    """
+    Обработчик подтверждения или отмены рассылки.
+    
+    В зависимости от выбора пользователя либо отменяет рассылку,
+    либо отправляет её всем пользователям.
+    
+    Args:
+        callback: Объект callback-запроса
+        state: Контекст состояния FSM
+        bot: Экземпляр бота для отправки сообщений
+    """
     if callback.data.split("_")[1] == 'cancel':
         await callback.message.answer("Выберите тип сообщения:", reply_markup=mailing_kb())
     elif callback.data.split("_")[1] == 'confirm':
@@ -237,11 +386,10 @@ async def show_mailing_types(callback: CallbackQuery, state: FSMContext, bot: Bo
 async def send_file_to_admin(file_path: str, bot: Bot):
     """
     Send file to superadmin.
-
+    
     Args:
         file_path (str): Path to file.
         bot (Bot): Bot instance.
-
     """
     user_id = SUPERADMIN_ID
     file_path = file_path
@@ -250,17 +398,161 @@ async def send_file_to_admin(file_path: str, bot: Bot):
 
 
 @router.message(F.document, IsAdmin())
-async def load_dates(messege: Message, bot: Bot):
-    file_idx = messege.document.file_id
+async def load_dates(message: Message, bot: Bot):
+    """
+    Обработчик загрузки файла с данными.
+    
+    Загружает Excel-файл, сохраняет его и загружает данные в базу.
+    
+    Args:
+        message: Объект сообщения с прикрепленным файлом
+        bot: Экземпляр бота для работы с файлами
+    """
+    file_idx = message.document.file_id
     file = await bot.get_file(file_id=file_idx)
     file_path = file.file_path
     print(file, file_path)
-    await bot.download_file(file_path , "data/forload.xlsx")
+    await bot.download_file(file_path, "data/forload.xlsx")
     count = load_data("data/forload.xlsx", engine=engine)
     if count != 0:
-        await messege.answer(f"Загружено {count} позиций")
+        await message.answer(f"Загружено {count} позиций")
     else:
-        await messege.answer(f"Ошибка загрузки позиций")
+        await message.answer(f"Ошибка загрузки позиций")
 
 
+#*******************************
+# Работа с корзиной для админа
+#******************************
+@router.callback_query(F.data == "done_carts")
+async def show_questions(callback: CallbackQuery) -> None:
+    """
+    Обработчик кнопки просмотра заказов для сбора.
+    
+    Получает список заказов, готовых к выдаче, и отображает их.
+    
+    Args:
+        callback: Объект callback-запроса
+    """
+    entities = get_entity_for_done(session, Cart)
+    await callback.message.answer("Заказы для сбора:", reply_markup=get_entity_kb(entities, Cart))
 
+
+@router.callback_query(F.data.startswith("Cart_"))
+async def show_cart_for_done(callback: CallbackQuery):
+    """
+    Обработчик просмотра содержимого корзины.
+    
+    Отображает все товары в заказе с деталями и кнопками управления.
+    
+    Args:
+        callback: Объект callback-запроса с ID корзины
+    """
+    cart_id = int(callback.data.split("_")[1])
+    items = get_entity_items(session, cart_id, CartItems)
+    user_id = callback.from_user.id
+    user_cart_messages[user_id] = []
+    
+    # Вывод всех товаров как отдельные сообщения
+    for item in items:
+        text = (
+            f"🛒 <b>{item.product.name}</b>\n"
+            f"Количество: <b>{item.quantity}</b> {item.product.unit}\n"
+            f"Стоимость: <b>{item.total_price:.2f} ₽</b>"
+        )
+        sent_message = await callback.message.answer(text=text, parse_mode=ParseMode.HTML)
+        user_cart_messages[user_id].append(sent_message.message_id)
+    
+    # Отправка кнопок управления заказом
+    buttons_message = await callback.message.answer(
+        "Выберите действие:",
+        reply_markup=get_admin_confirmentity_kb(cart_id, "Cart"),
+        parse_mode="Markdown"
+    )
+    user_cart_messages[user_id].append(buttons_message.message_id)
+
+    # Опционально: также сохраняем chat_id для корректного удаления
+    user_cart_messages[user_id].append({"chat_id": callback.message.chat.id})
+
+
+@router.callback_query(F.data.startswith("Back"))
+async def go_back(callback: CallbackQuery):
+    user_id = callback.from_user.id
+
+    if user_id in user_cart_messages:
+        for mid in user_cart_messages[user_id]:
+            try:
+                await callback.bot.delete_message(user_id, mid)
+            except:
+                pass
+        del user_cart_messages[user_id]
+
+    await callback.answer("Экран очищен")
+
+
+@router.callback_query(F.data.startswith("CartDone_"))
+async def show_cart_for_done(callback: CallbackQuery):
+    """Обработка процесса окончания сбора корзины"""
+    user_id = callback.from_user.id
+    cart_id = int(callback.data.split("_")[1])
+    print('Cart is Done', cart_id)
+    entity = get_entity_by_id(session, cart_id, Cart)
+    sent_message = await callback.message.edit_text(
+        f"Выберите действие:",
+        reply_markup=get_close_entity(cart_id, "Cart"),
+        parse_mode=ParseMode.HTML
+    )
+    user_cart_messages[user_id].append(sent_message.message_id)
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("CartDoneMessage_"))
+async def show_cart_for_done(callback: CallbackQuery, state: FSMContext, bot: Bot):
+    """Обработка процесса уведомления клиента о готовности корзины к выдаче"""
+    cart_id = int(callback.data.split("_")[1]) if callback.data.split("_")[1] != "comm" else int(callback.data.split("_")[2])
+    entity = get_entity_by_id(session, cart_id, Cart)
+    user = await bot.get_chat(get_costumer_tgid(session, entity.user_id))
+    name = "Клиент" if not user.full_name else user.full_name
+    text = (f"Уважаемый {name}, Ваш заказ №{cart_id} готов к выдаче.\n"
+            f"Ждем Вас в нашем магазине.")
+    if callback.data.split("_")[1] != "comm":
+        await bot.send_message(chat_id=user.id, text=text)
+        await callback.message.answer((f"Клиент уведомлен о готовности заказа \n"
+                                       f"заказ перешел в категорию 'Для выдачи'"))
+        await callback.answer()
+        set_entity_for_issue(session, cart_id, Cart)
+        return
+    else:
+        await state.update_data(text=text)
+        await state.update_data(user=user)
+        await state.update_data(cart_id=cart_id)
+        await callback.message.answer("Введите текст комментария")
+        await state.set_state(CommentStates.Comment)
+    await callback.answer()
+
+
+@router.message(CommentStates.Comment)
+async def handle_imageurl(message: Message, state: FSMContext, bot: Bot):
+    await state.update_data(comment=message.text)
+    my_data = await state.get_data()
+    user = my_data.get('user')
+    cart_id = my_data.get('cart_id')
+    user_id = user.id
+    print(user_id)
+    text = f"{my_data.get('text')} \n {my_data.get('comment')}"
+    await bot.send_message(chat_id=user.id, text=text)
+    await message.answer((f"Клиент уведомлен о готовности заказа. \n"
+                                   f"Заказ перешел в категорию 'Для выдачи'"))
+    set_entity_for_issue(session, cart_id, Cart)
+
+
+# @router.callback_query()
+# async def test(callback: CallbackQuery):
+#     """
+#     Тестовый обработчик для отладки callback-запросов.
+#
+#     Выводит в консоль данные полученного callback-запроса.
+#
+#     Args:
+#         callback: Объект callback-запроса
+#     """
+#     print(callback.data)
