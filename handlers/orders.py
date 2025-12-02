@@ -1,4 +1,5 @@
 from aiogram import Router, F, Bot, types
+from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery, FSInputFile
@@ -7,7 +8,8 @@ from aiogram.filters import Command
 from data.config import SUPERADMIN_ID
 from database.db import (session, Order, get_product_by_id, get_active_entity,
                          set_active_entity, save_product_to_entity, get_entity_items,
-                         change_item_quantity, delete_entity_item, confirm_entity)
+                         change_item_quantity, delete_entity_item, confirm_entity, get_entity_item, get_all_admin,
+                         delete_entity, get_entity_by_id)
 from database.models import OrderItems, Product
 from keyboards.carts_kb import item_action_kb, cart_main_kb, delete_confirm_kb
 
@@ -30,7 +32,6 @@ async def add_product_to_order(callback: types.CallbackQuery, state: FSMContext)
     if not get_active_entity(session, callback.from_user.id, Order):
          order = set_active_entity(session, callback.from_user.id, Order)
     order = get_active_entity(session, callback.from_user.id, Order)
-    print(order)
     await state.update_data(product_id=product_id,
                             user_id=callback.from_user.id,
                             price=product.price,
@@ -48,7 +49,7 @@ async def add_product_to_order(callback: types.CallbackQuery, state: FSMContext)
 
 
 @router.message(Orderitemscount.Orderitemscount)
-async def get_items_count(message: Message, state: FSMContext):
+async def get_orderitems_count(message: Message, state: FSMContext):
     """обработка ввода количества товара в стейте"""
     user_input = message.text.replace(',', '.') if ',' in message.text else message.text
     try:
@@ -76,7 +77,7 @@ async def show_order(message: Message):
     """Показ корзины"""
 
     order = get_active_entity(session, message.from_user.id, Order)
-    if not order:
+    if not order or not order.items:
         await message.answer("Ваш заказ пуст, выберите товары для добавления")
         return
     items = get_entity_items(session, order.id, OrderItems)
@@ -87,21 +88,21 @@ async def show_order(message: Message):
     # Вывод всех товаров как отдельные сообщения
     for item in items:
         text = (
-            f"🛍 *{item.product.name}*\n"
-            f"Количество: *{item.quantity}* {item.product.unit}\n"
-            f"Стоимость: *{item.total_price:.2f}*₽"
+            f"🛍 <b>{item.product.name}</b>\n"
+            f"Количество: <b>{item.quantity}</b> {item.product.unit}\n"
+            f"Стоимость: <b>{item.total_price:.2f} ₽</b>"
         )
         msg = await message.answer(
             text,
-            reply_markup=item_action_kb(item.id, "order"),
-            parse_mode="Markdown"
+            reply_markup=item_action_kb(item.id, "OrderItem"),
+            parse_mode=ParseMode.HTML
         )
         user_order_messages[message.from_user.id].append(msg.message_id)
 
     # Итоговая кнопка
     final_msg = await message.answer(
         f"Итого: *{order.total_amount:.2f}*₽",
-        reply_markup=cart_main_kb(order.id, "order"),
+        reply_markup=cart_main_kb(order.id, "Order"),
         parse_mode="Markdown"
     )
     user_order_messages[message.from_user.id].append(final_msg.message_id)
@@ -111,34 +112,34 @@ async def show_order(message: Message):
 #               Кнопки + и -
 # -------------------------------------------------------
 
-@router.callback_query(F.data.startswith("order_plus"))
-async def plus_item(call: CallbackQuery):
+@router.callback_query(F.data.startswith("OrderItem_plus"))
+async def plus_orderitem(call: CallbackQuery):
     _, item_id = call.data.split(":")
 
     item = change_item_quantity(session, int(item_id), +1, OrderItems)
 
     await call.message.edit_text(
-        f"🛒 *{item.product.name}*\n"
-        f"Количество: *{item.quantity}* {item.product.unit}\n"
-        f"Стоимость: *{item.total_price:.2f}*₽",
-        reply_markup=item_action_kb(item.id, "oder"),
-        parse_mode="Markdown"
+        f"🛍 <b>{item.product.name}</b>\n"
+        f"Количество: <b>{item.quantity}</b> {item.product.unit}\n"
+        f"Стоимость: <b>{item.total_price:.2f} ₽</b>",
+        reply_markup=item_action_kb(item.id, "OrderItem"),
+        parse_mode=ParseMode.HTML
     )
     await call.answer()
 
 
-@router.callback_query(F.data.startswith("order_minus"))
-async def minus_item(call: CallbackQuery):
+@router.callback_query(F.data.startswith("OrderItem_minus"))
+async def minus_orderitem(call: CallbackQuery):
     _, item_id = call.data.split(":")
 
     item = change_item_quantity(session, int(item_id), -1, OrderItems)
 
     await call.message.edit_text(
-        f"🛒 *{item.product.name}*\n"
-        f"Количество: *{item.quantity}* {item.product.unit}\n"
-        f"Стоимость: *{item.total_price:.2f}*₽",
-        reply_markup=item_action_kb(item.id, "order"),
-        parse_mode="Markdown"
+        f"🛍 <b>{item.product.name}</b>\n"
+        f"Количество: <b>{item.quantity}</b> {item.product.unit}\n"
+        f"Стоимость: <b>{item.total_price:.2f} ₽</b>",
+        reply_markup=item_action_kb(item.id, "OrderItem"),
+        parse_mode=ParseMode.HTML
     )
     await call.answer()
 
@@ -147,15 +148,15 @@ async def minus_item(call: CallbackQuery):
 #                  Удаление товара
 # -------------------------------------------------------
 
-@router.callback_query(F.data.startswith("order_delete:"))
-async def delete_item_request(call: CallbackQuery):
+@router.callback_query(F.data.startswith("OrderItem_delete:"))
+async def delete_orderitem_request(call: CallbackQuery):
     _, item_id = call.data.split(":")
-    await call.message.edit_reply_markup(reply_markup=delete_confirm_kb(int(item_id), "order"))
+    await call.message.edit_reply_markup(reply_markup=delete_confirm_kb(int(item_id), "OrderItem"))
     await call.answer()
 
 
-@router.callback_query(F.data.startswith("order_delete_confirm:"))
-async def delete_item_confirm(call: CallbackQuery):
+@router.callback_query(F.data.startswith("OrderItem_delete_confirm:"))
+async def delete_orderitem_confirm(call: CallbackQuery):
     _, item_id = call.data.split(":")
 
     delete_entity_item(session, int(item_id), OrderItems)
@@ -164,23 +165,34 @@ async def delete_item_confirm(call: CallbackQuery):
     await call.answer()
 
 
-@router.callback_query(F.data.startswith("order_delete_cancel"))
-async def delete_item_cancel(call: CallbackQuery):
-    await call.message.edit_text("Отменено")
-    await call.answer()
+@router.callback_query(F.data.startswith("OrderItem_delete_cancel:"))
+async def delete_orderitem_cancel(call: CallbackQuery):
+    _, item_id = call.data.split(":")
+    item = get_entity_item(session, int(item_id), OrderItems)
+    await call.message.edit_text(
+        f"🛒 <b>{item.product.name}</b>\n"
+        f"Количество: <b>{item.quantity}</b> {item.product.unit}\n"
+        f"Стоимость: <b>{item.total_price:.2f} ₽</b>",
+        reply_markup=item_action_kb(item.id, "OrderItem"),
+        parse_mode=ParseMode.HTML
+    )
+    await call.answer(text="Удаление отменено ❌", show_alert=False)
 
 
 # -------------------------------------------------------
 #             Подтверждение корзины
 # -------------------------------------------------------
 
-@router.callback_query(F.data.startswith("order_confirm"))
+@router.callback_query(F.data.startswith("Order_confirm"))
 async def confirm_order_handler(call: CallbackQuery):
     _,order_id = call.data.split(":")
-
-    confirm_entity(session, int(order_id), Order)
-
-    await call.message.edit_text("✅ Заказ подтверждён")
+    order = confirm_entity(session, int(order_id), Order)
+    await call.message.answer(
+        f"✅ Ваш заказ принят!\n"
+        f"Номер заказа: {order.id}\n"
+        f"Всего позиций: {int(order.total_items)}\n"
+        f"Мы направим Вам информацию о готовности."
+    )
 
     # Удаляем все сообщения корзины
     user_id = call.from_user.id
@@ -191,16 +203,53 @@ async def confirm_order_handler(call: CallbackQuery):
             except:
                 pass
         del user_order_messages[user_id]
-
+        # Уведомление админам
+    admins = get_all_admin(session)
+    for admin in admins:
+        await call.bot.send_message(chat_id=admin, text=f"{call.from_user.full_name} собрал заказ \n"
+                                                            f" №: {order.id}, всего {int (order.total_items)} позиций")
     await call.answer()
 
 
 # -------------------------------------------------------
+#             Удаление заказа
+# -------------------------------------------------------
+@router.callback_query(F.data.startswith("Order_delete:"))
+async def confirm_order_handler(call: CallbackQuery):
+    """Delete Cart"""
+    _,order_id = call.data.split(":")
+    await call.message.edit_reply_markup(reply_markup=delete_confirm_kb(int(order_id), "Order"))
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("Order_delete_confirm:"))
+async def delete_orderitem_confirm(call: CallbackQuery):
+    _, item_id = call.data.split(":")
+
+    delete_entity(session, int(item_id), Order)
+
+    await call.message.edit_text("🗑 Заказ удалён")
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("Order_delete_cancel:"))
+async def delete_order_cancel(call: CallbackQuery):
+    """Обработка отмены корзины и перерисовка сообщения"""
+    _, item_id = call.data.split(":")
+    print(item_id)
+    item = get_entity_by_id(session, int(item_id), Order)
+    await call.message.edit_text(
+        f"Итого: *{item.total_amount:.2f}*₽",
+        reply_markup=cart_main_kb(item.id, "Cart"),
+        parse_mode="Markdown"
+    )
+    await call.answer(text="Удаление отменено ❌", show_alert=False)
+# -------------------------------------------------------
 #                Очистка экрана
 # -------------------------------------------------------
 
-@router.callback_query(F.data =="order_cleanup")
-async def cleanup_messages(call: CallbackQuery):
+@router.callback_query(F.data =="Order_cleanup")
+async def cleanup_ordermessages(call: CallbackQuery):
     user_id = call.from_user.id
 
     if user_id in user_order_messages:

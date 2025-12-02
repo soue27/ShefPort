@@ -25,16 +25,6 @@ class Itemscount(StatesGroup):
     itemscount = State()
 
 
-# @router.message(F.text == '🛒 Моя корзина')
-# async def show_carts(message: Message):
-#     """Обработчик нажатия кнопки Моя корзина"""
-#     nomer = get_active_cart(session, message.from_user.id)
-#     if not nomer:
-#         await message.answer(text="Ваша корзина пуста, выберите товары", show_alert=True)
-#     else:
-#         await message.answer(text=f"В вашей корзине есть товары, в путь Корзина №{nomer}", show_alert=True)
-
-
 @router.callback_query(F.data.startswith('add_to_cart_'))
 async def add_product_to_cart(callback: types.CallbackQuery, state: FSMContext):
     """Обработчик нажатия кнопки добавления товара в корзину"""
@@ -142,7 +132,7 @@ async def plus_item(call: CallbackQuery):
 @router.callback_query(F.data.startswith("CartItem_minus"))
 async def minus_item(call: CallbackQuery):
     _, item_id = call.data.split(":")
-
+    print("Why???????????????????????")
     item = change_item_quantity(session, int(item_id), -1, CartItems)
 
     await call.message.edit_text(
@@ -200,8 +190,6 @@ async def confirm_cart_handler(call: CallbackQuery):
     _, cart_id = call.data.split(":")
 
     cart = confirm_entity(session, int(cart_id), Cart)
-    # await call.message.edit_text("✅ Ваш заказ принят. Мы направим Вам информацию о готовности")
-    # await asyncio.sleep(2)
     await call.message.answer(
         f"✅ Ваш заказ принят!\n"
         f"Номер заказа: {cart.id}\n"
@@ -250,19 +238,13 @@ async def delete_cancel(call: CallbackQuery):
     """Обработка отмены корзины и перерисовка сообщения"""
     print(user_cart_messages)
     _, item_id = call.data.split(":")
-    print(item_id)
     item = get_entity_by_id(session, int(item_id), Cart)
-    print(item)
     await call.message.edit_text(
         f"Итого: *{item.total_amount:.2f}*₽",
         reply_markup=cart_main_kb(item.id, "Cart"),
         parse_mode="Markdown"
     )
     await call.answer(text="Удаление отменено ❌", show_alert=False)
-
-
-
-
 
 # -------------------------------------------------------
 #                Очистка экрана
