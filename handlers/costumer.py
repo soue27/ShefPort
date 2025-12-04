@@ -4,6 +4,7 @@ Module handlers.costumer
 This module contains handlers for customer interactions in the Telegram bot.
 It handles product categories display, product search, and related commands.
 """
+
 from aiogram import Router, F, types, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
@@ -18,7 +19,7 @@ from handlers.search_helpers import (
     search_states,
     SearchState
 )
-from keyboards.categorieskb import get_categories_kb, get_exit_search_kb
+from keyboards.categorieskb import get_categories_kb, get_exit_search_kb, show_in_stock_kb
 
 router = Router(name='costumer')
 
@@ -47,12 +48,14 @@ async def show_categories(message: Message):
     Returns:
         None: Sends a message with a list of categories to the user.
     """
-    categories = get_all_categories(session)
-    await message.answer(text="Выберете категорию товара:", reply_markup=get_categories_kb(categories))
+    await message.answer("Выберите режим показа товаров:", reply_markup=show_in_stock_kb())
+    #
+    # categories = get_all_categories(session)
+    # await message.answer(text="Выберете категорию товара:", reply_markup=get_categories_kb(categories))
 
 
 @router.callback_query(F.data.startswith('category_'))
-async def show_product_bycategory(callback: types.CallbackQuery):
+async def show_product_bycategory(callback: types.CallbackQuery, state: FSMContext):
     """
     Handles category selection from the categories keyboard.
     
@@ -63,7 +66,9 @@ async def show_product_bycategory(callback: types.CallbackQuery):
         None: Displays products from the selected category.
     """
     category_id = int(callback.data.split("_")[1])
-    await start_category_products(callback.message, category_id, session)
+    my_data = await state.get_data()
+    in_stock = my_data['in_stock']
+    await start_category_products(callback.message, category_id, session, in_stock=in_stock)
     await callback.answer()
 
 
@@ -157,4 +162,21 @@ async def exit_search(callback: types.CallbackQuery, state: FSMContext):
     await state.clear()
 
 
+@router.callback_query(F.data.in_(['in_stock', 'show_all']))
+async def in_stock_category(callback: types.CallbackQuery, state: FSMContext):
+    """"""
+    if callback.data == 'in_stock':
+        await state.update_data(in_stock=True)
+    else:
+        await state.update_data(in_stock=False)
+    categories = get_all_categories(session)
+    await callback.message.answer(
+        text="Выберете категорию товара:",
+        reply_markup=get_categories_kb(categories),
+        )
+    await callback.answer()
+
+
+
+# End of handlers/costumer.py
 

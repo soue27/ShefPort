@@ -142,16 +142,17 @@ async def send_control_message(message, category_id, current_offset, total_produ
     )
 
 
-async def start_category_products(message, category_id, session):
+async def start_category_products(message, category_id, session, in_stock: bool):
     """
     Начинает показ товаров выбранной категории
     Args:
         message: Объект сообщения
         category_id: ID выбранной категории
         session: Сессия базы данных
+        in_stock: Тру если показывается только товар в наличии
     """
     # Получаем товары категории
-    products = get_products_by_category(session, category_id)
+    products = get_products_by_category(session, category_id, in_stock)
 
     if not products:
         await message.answer("😔 В этой категории пока нет товаров")

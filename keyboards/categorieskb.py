@@ -14,7 +14,6 @@ Key Features:
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from database.db import get_all_categories, session
 
 
 def get_categories_kb(categories: list, page: int = 0) -> InlineKeyboardMarkup:
@@ -61,3 +60,12 @@ def get_exit_search_kb():
     builder = InlineKeyboardBuilder()
     builder.button(text="❌Выйти", callback_data="exit_search")
     return builder.as_markup()
+
+
+def show_in_stock_kb():
+    """Клавиатура для показа товаров в наличии или всех товаров в каталоге"""
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="🛒 Показать товары в наличии", callback_data="in_stock"),
+                InlineKeyboardButton(text="🛍️ Показать все товары", callback_data="show_all"))
+    builder.adjust(1)
+    return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)

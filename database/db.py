@@ -76,7 +76,7 @@ def get_random_photo(session: Session):
     return result.main_image, result.name
 
 
-def get_all_categories(session: Session):
+def get_all_categories(session: Session, in_stock: bool = False):
     """
     Fetches all categories from the database.
 
@@ -91,7 +91,7 @@ def get_all_categories(session: Session):
     return result
 
 
-def get_products_by_category(session: Session, category_id: int):
+def get_products_by_category(session: Session, category_id: int, in_stock: bool = False):
     """
     Fetches all products belonging to a specific category.
 
@@ -99,10 +99,15 @@ def get_products_by_category(session: Session, category_id: int):
     :type session: Session
     :param category_id: ID of the category to filter products by
     :type category_id: int
+    :param in_stock: Boolean value indicating whether to filter products by stock
+    :type in_stock: bool
     :return: List of Product objects matching the category
     :rtype: list[Product]
     """
-    stmt = select(Product).where(Product.category_id == category_id)
+    if not in_stock:
+        stmt = select(Product).where(Product.category_id == category_id)
+    else:
+        stmt = select(Product).where(Product.category_id == category_id).where(Product.ostatok > 0)
     result = session.scalars(stmt).all()
     session.close()
     return result
@@ -458,11 +463,11 @@ def get_entity_for_done(session: Session, model):
     return result
 
 
-def set_entity_for_issue(session: Session, id, model):
+def set_entity_for_issue(session: Session, entity_id, model):
     """Устанавливает признак готовности Cart, Order для выдачи товара"""
     stmt = (
         update(model)
-            .where(model.id == id)
+            .where(model.id == entity_id)
             .values(is_done=False, is_issued=True, is_done_at=datetime.now())
         )
     session.execute(stmt)
@@ -483,6 +488,17 @@ def set_entity_close(session: Session, id, model):
     session.execute(stmt)
     session.commit()
     return session.get(model, id)
+
+
+def get_entity_by_user_id(session: Session, user_id: int, model):
+    """поолучение всех неактивных корзин по айди пользователя"""
+    stmt = select(model).where(model.user_id==user_id,
+                               model.is_active==False).order_by(model.id)
+    result = session.scalars(stmt).all()
+    return result
+
+
+
 ##########################################
 #раздел работы с корзиной покупок и заказов
 ##########################################
