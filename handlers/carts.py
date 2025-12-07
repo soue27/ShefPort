@@ -1,4 +1,3 @@
-from gc import callbacks
 from typing import Sequence, Any
 
 from aiogram import Router, F, types

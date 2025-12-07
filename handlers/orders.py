@@ -1,3 +1,5 @@
+from typing import Sequence, Any
+
 from aiogram import Router, F, Bot, types
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
@@ -6,13 +8,35 @@ from aiogram.types import Message, CallbackQuery, FSInputFile
 from aiogram.filters import Command
 
 from data.config import SUPERADMIN_ID
-from database.db import (session, Order, get_product_by_id, get_active_entity,
-                         set_active_entity, save_product_to_entity, get_entity_items,
-                         change_item_quantity, delete_entity_item, confirm_entity, get_entity_item, get_all_admin,
-                         delete_entity, get_entity_by_id)
+from database.db import (
+    session,
+    Order,
+    get_product_by_id,
+    get_active_entity,
+    set_active_entity,
+    save_product_to_entity,
+    get_entity_items,
+    change_item_quantity,
+    delete_entity_item,
+    confirm_entity,
+    get_entity_item,
+    get_all_admin,
+    delete_entity,
+    get_entity_by_id,
+    get_costumer_id,
+    get_entity_by_user_id,
+    get_all_categories,
+)
 from database.models import OrderItems, Product
-from keyboards.carts_kb import item_action_kb, cart_main_kb, delete_confirm_kb
-
+from keyboards.carts_kb import (
+    item_action_kb,
+    cart_main_kb,
+    delete_confirm_kb,
+    previous_cart_kb,
+    previous_cartlist_kb,
+    back_kb,
+)
+from keyboards.categorieskb import get_categories_kb
 
 router = Router(name='orders')
 
@@ -28,9 +52,6 @@ async def add_product_to_order(callback: types.CallbackQuery, state: FSMContext)
     """Обработчик нажатия кнопки добавления товара в корзину"""
     product_id = int(callback.data.split("_")[3])
     product: Product = get_product_by_id(session, product_id)
-    print(get_active_entity(session, callback.from_user.id, Order))
-    if not get_active_entity(session, callback.from_user.id, Order):
-         order = set_active_entity(session, callback.from_user.id, Order)
     order = get_active_entity(session, callback.from_user.id, Order)
     await state.update_data(product_id=product_id,
                             user_id=callback.from_user.id,
@@ -38,6 +59,10 @@ async def add_product_to_order(callback: types.CallbackQuery, state: FSMContext)
                             name=product.name,
                             order_id=order.id,
     )
+    if not get_active_entity(session, callback.from_user.id, Order):
+         order = set_active_entity(session, callback.from_user.id, Order)
+    order = get_active_entity(session, callback.from_user.id, Order)
+    await state.update_data(cart_id=order.id)
     if product.unit in ["кг", "кг."]:
         text = f"Пожалуйста, введите количество товара: <b>{product.name}</b> для заказа\n" \
                f"'Обратите внимание товар весовой'"
@@ -78,7 +103,11 @@ async def show_order(message: Message):
 
     order = get_active_entity(session, message.from_user.id, Order)
     if not order or not order.items:
-        await message.answer("Ваш заказ пуст, выберите товары для добавления")
+        await message.answer(
+            "Ваша корзина пуста, выберите товары для добавления в каталоге, \n"
+            "либо нажмите 👇 для просмотра Ваших заказов",
+            reply_markup=previous_cart_kb(),
+        )
         return
     items = get_entity_items(session, order.id, OrderItems)
 
@@ -215,7 +244,7 @@ async def confirm_order_handler(call: CallbackQuery):
 #             Удаление заказа
 # -------------------------------------------------------
 @router.callback_query(F.data.startswith("Order_delete:"))
-async def confirm_order_handler(call: CallbackQuery):
+async def dekete_order(call: CallbackQuery):
     """Delete Cart"""
     _,order_id = call.data.split(":")
     await call.message.edit_reply_markup(reply_markup=delete_confirm_kb(int(order_id), "Order"))
@@ -223,7 +252,7 @@ async def confirm_order_handler(call: CallbackQuery):
 
 
 @router.callback_query(F.data.startswith("Order_delete_confirm:"))
-async def delete_orderitem_confirm(call: CallbackQuery):
+async def delete_order_confirm(call: CallbackQuery):
     _, item_id = call.data.split(":")
 
     delete_entity(session, int(item_id), Order)
@@ -261,3 +290,54 @@ async def cleanup_ordermessages(call: CallbackQuery):
         del user_order_messages[user_id]
 
     await call.answer("Экран очищен")
+
+
+# -------------------------------------------------------
+#                Показ предыдущих закзазов
+# -------------------------------------------------------
+@router.callback_query(F.data == "previous_cart")
+async def show_previus_cart(callback: CallbackQuery):
+    user_order_messages[callback.from_user.id] = []
+    user_id = get_costumer_id(session, callback.from_user.id)
+    previous_carts: Sequence[Any] = get_entity_by_user_id(session, user_id, Order)
+    if not previous_carts: # условие для показа каталога, если не было до этого покупок
+        categories = get_all_categories(session)
+        await callback.message.edit_text("У вас не было покупок до настоящего момента, \n"
+                                      "выберите товары в нашем каталоге",
+                                      reply_markup=get_categories_kb(categories))
+        await callback.answer()
+        return
+    else:  # Вывод на экран предыдущих корзин
+        await callback.message.edit_text(
+            "Список Ваших заказов:",
+            reply_markup=previous_cartlist_kb(previous_carts),
+        )
+        user_order_messages[callback.from_user.id].append(callback.message.message_id)
+        await callback.answer()
+
+
+@router.callback_query(F.data.startswith("previous_cart_"))
+async def show_previus_item(callback: CallbackQuery):
+    # user_cart_messages[callback.from_user.id] = []
+    _, _, cart_id = callback.data.split("_")
+    cart_id = int(cart_id)
+    items = get_entity_items(session, cart_id, OrderItems)
+    start_msg = await callback.message.answer(text = f"🛒 <b>Заказ №{cart_id}</b>")
+    user_id = callback.from_user.id
+    if user_id not in user_order_messages:
+        user_order_messages[user_id] = []
+    user_order_messages[user_id].append(start_msg.message_id)
+    for item in items:
+        msg = await callback.message.answer(text = f"✅ <b>{item.product.name}</b>\n"
+                                            f"Количество: <b>{item.quantity}</b> {item.product.unit}\n"
+                                            f"Стоимость: <b>{item.total_price:.2f} ₽</b>"
+        )
+        user_order_messages[user_id].append(msg.message_id)
+    back_msg = await callback.message.answer(text="Для возрата к списку заказов нажмите 👇",
+                                             reply_markup=back_kb())
+    user_order_messages[callback.from_user.id].append(back_msg.message_id)
+    if user_id in user_order_messages and user_order_messages[user_id]:
+        # Удаляем и возвращаем первый элемент
+        user_order_messages[user_id].pop(0)
+
+        # user_cart_messages[callback.from_user.id].append(msg.message_id)
