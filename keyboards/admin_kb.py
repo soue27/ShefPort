@@ -28,14 +28,12 @@ def main_kb() -> InlineKeyboardMarkup:
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
 
 
-def check_questions():
+def check_questions(count: int, text: str, text2:str):
     """Клавиатура для проверки сообщений"""
-    count2 = count_model_records(session, Question, filters=[Question.is_answered == False])
-    text = plural_form(count2, ("новое", "новых", "новых"))
-    text2 = plural_form(count2, ("сообщение", "сообщения", "сообщений"))
+
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Все сообщения", callback_data="all_questions"),
-                InlineKeyboardButton(text=f"{count2} - {text.capitalize()} {text2}", callback_data="new_questions"))
+                InlineKeyboardButton(text=f"{count} - {text.capitalize()} {text2}", callback_data="new_questions"))
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
 
 

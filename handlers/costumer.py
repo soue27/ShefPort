@@ -61,7 +61,7 @@ async def show_product_bycategory(callback: types.CallbackQuery, state: FSMConte
     
     Args:
         callback (CallbackQuery): The callback query containing the selected category ID.
-        
+        state
     Returns:
         None: Displays products from the selected category.
     """
