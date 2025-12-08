@@ -28,7 +28,6 @@ def setup_logging():
         format="<green>{time:HH:mm:ss}</green> | <level>{level}</level> | {message}",
         level="DEBUG",
     )
-
     # =========================
     # 2) Файл debug.log — все уровни
     # =========================
@@ -38,6 +37,18 @@ def setup_logging():
         compression="zip",
         level="DEBUG",
         enqueue=True,
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
+    )
+    # =========================
+    # 3) Файл app.log — только ошибки
+    # =========================
+    logger.add(
+        "logs/error.log",
+        rotation="1 week",
+        compression="zip",
+        level="ERROR",
+        enqueue=True,
+        filter=lambda record: record["level"].no >= 40,
         format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
     )
 

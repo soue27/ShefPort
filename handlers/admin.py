@@ -150,7 +150,7 @@ async def show_questions(callback: CallbackQuery) -> None:
         callback: Объект callback-запроса
     """
     try:
-        count = count_model_records(session, Question, filters=[not Question.is_answered])
+        count = count_model_records(session, Question, filters=[~Question.is_answered])
         text = plural_form(count, ("новое", "новых", "новых"))
         text2 = plural_form(count, ("сообщение", "сообщения", "сообщений"))
         logger.info(f"'show_questions': Админ {callback.from_user.id} получил {count} {text} от пользователей")
@@ -333,10 +333,10 @@ async def show_mailing(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.message.answer("Введите заголовок сообщения:")
     if callback.data.split("_")[1] == 'text':
         await state.set_state(TextMailing.title)
-        logger.info(f"'show_mailing': Пользователь ввел заголовок {callback.message.from_user.id} перешел на стейт TextMailing.title")
+        logger.info(f"'show_mailing': Пользователь ввел заголовок {callback.from_user.id} перешел на стейт TextMailing.title")
     else:
         await state.set_state(ImageMailing.title)
-        logger.info(f"'show_mailing': Пользователь ввел заголовок {callback.message.from_user.id} перешел на стейт ImageMailing.title")
+        logger.info(f"'show_mailing': Пользователь ввел заголовок {callback.from_user.id} перешел на стейт ImageMailing.title")
 
 
 @router.message(TextMailing.title)
@@ -555,10 +555,10 @@ async def show_done_carts(callback: CallbackQuery) -> None:
     """
     try:
         entities = get_entity_for_done(session, Cart)
-        logger.info(f"Успешный запрос в БД 'get_entity_for_done' в 'show_done_carts' от {callback.message.from_user.id}")
+        logger.info(f"Успешный запрос в БД 'get_entity_for_done' в 'show_done_carts' от {callback.from_user.id}")
     except Exception as e:
         logger.exception(
-            f"Ошибка при запросе в БД 'get_entity_for_done' в 'show_done_carts' от {callback.message.from_user.id}: {e}"
+            f"Ошибка при запросе в БД 'get_entity_for_done' в 'show_done_carts' от {callback.from_user.id}: {e}"
         )
         return
     await callback.message.answer("Заказы для сбора:", reply_markup=get_entity_kb(entities, Cart))
@@ -575,11 +575,11 @@ async def show_cart_for_done(callback: CallbackQuery):
     try:
         items = get_entity_items(session, cart_id, CartItems)
         logger.info(
-            f"Успешный запрос в БД 'get_entity_items' в 'show_cart_for_done' от {callback.message.from_user.id}"
+            f"Успешный запрос в БД 'get_entity_items' в 'show_cart_for_done' от {callback.from_user.id}"
         )
     except Exception as e:
         logger.exception(
-            f"Ошибка при запросе в БД 'get_entity_items' в 'show_cart_for_done' от {callback.message.from_user.id}: {e}"
+            f"Ошибка при запросе в БД 'get_entity_items' в 'show_cart_for_done' от {callback.from_user.id}: {e}"
         )
         return
     user_id = callback.from_user.id
@@ -598,11 +598,11 @@ async def show_cart_for_done(callback: CallbackQuery):
     try:
         entity = get_entity_by_id(session, cart_id, Cart).is_issued
         logger.info(
-            f"Успешный запрос в БД 'get_entity_by_id' в 'show_cart_for_done' от {callback.message.from_user.id}"
+            f"Успешный запрос в БД 'get_entity_by_id' в 'show_cart_for_done' от {callback.from_user.id}"
         )
     except Exception as e:
         logger.exception(
-            f"Ошибка при запросе в БД 'get_entity_by_id' в 'show_cart_for_done' от {callback.message.from_user.id}: {e}"
+            f"Ошибка при запросе в БД 'get_entity_by_id' в 'show_cart_for_done' от {callback.from_user.id}: {e}"
         )
         return
     if not entity:
@@ -635,7 +635,7 @@ async def go_back(callback: CallbackQuery) -> None:
         for mid in user_cart_messages[user_id]:
             await callback.bot.delete_message(user_id, mid)
         del user_cart_messages[user_id]
-    logger.info(f"Пользователь нажал 'назад' 'go_back' от {callback.message.from_user.id}")
+    logger.info(f"Пользователь нажал 'назад' 'go_back' от {callback.from_user.id}")
     await callback.answer("Экран очищен")
 
 
@@ -653,7 +653,7 @@ async def get_cart_for_done(callback: CallbackQuery) -> None:
         cart_id = int(callback.data.split("_")[1])
     except Exception as e:
         logger.exception(
-            f"Ошибка при ввода номера корзины в 'get_cart_for_done' от {callback.message.from_user.id}: {e}"
+            f"Ошибка при ввода номера корзины в 'get_cart_for_done' от {callback.from_user.id}: {e}"
         )
         return
     sent_message = await callback.message.edit_text(
@@ -682,19 +682,21 @@ async def mess_cart_for_done(callback: CallbackQuery, state: FSMContext, bot: Bo
         entity = get_entity_by_id(session, cart_id, Cart)
     except Exception as e:
         logger.exception(
-            f"Ошибка при ввода номера корзины в 'mess_cart_for_done' от {callback.message.from_user.id}: {e}"
+            f"Ошибка при ввода номера корзины в 'mess_cart_for_done' от {callback.from_user.id}: {e}"
         )
         return
+    print(cart_id, entity)
     try:
         user = await bot.get_chat(get_costumer_tgid(session, entity.user_id))
     except Exception as e:
         logger.exception(
-            f"Ошибка при получении ай ди чата в 'mess_cart_for_done' от {callback.message.from_user.id}: {e}"
+            f"Ошибка при получении ай ди чата в 'mess_cart_for_done' от {callback.from_user.id}: {e}"
         )
         return
     name = "Клиент" if not user.full_name else user.full_name
     text = (f"Уважаемый {name}, Ваш заказ №{cart_id} готов к выдаче.\n"
             f"Ждем Вас в нашем магазине.")
+    print(user.id)
     try:
         if callback.data.split("_")[1] != "comm":
             await bot.send_message(chat_id=user.id, text=text)
@@ -702,7 +704,7 @@ async def mess_cart_for_done(callback: CallbackQuery, state: FSMContext, bot: Bo
                                            "заказ перешел в категорию 'Для выдачи'"))
             await callback.answer()
             set_entity_for_issue(session, cart_id, Cart)
-            logger.info(f"Пользователю {name} направлено уведмоление в 'mess_cart_for_done' от {callback.message.from_user.id}")
+            logger.info(f"Пользователю {name} направлено уведмоление в 'mess_cart_for_done' от {callback.from_user.id}")
             return
         else:
             await state.update_data(text=text)
@@ -712,10 +714,10 @@ async def mess_cart_for_done(callback: CallbackQuery, state: FSMContext, bot: Bo
             await state.set_state(CommentStates.Comment)
         logger.info(
             f"Пользователю {name} будет добавлен комментарий в 'mess_cart_for_done' "
-            f"от {callback.message.from_user.id} переход на стейт CommentStates.Comment")
+            f"от {callback.from_user.id} переход на стейт CommentStates.Comment")
     except Exception as e:
         logger.exception(
-            f"Ошибка при отправке сообщения пользователю {name} 'mess_cart_for_done' от {callback.message.from_user.id}: {e}"
+            f"Ошибка при отправке сообщения пользователю {name} 'mess_cart_for_done' от {callback.from_user.id}: {e}"
         )
         return
     await callback.answer()
@@ -770,10 +772,10 @@ async def show_issued_carts(callback: CallbackQuery) -> None:
     try:
         entities = get_entity_for_issued(session, Cart)
         logger.info(
-        f" Запрос {callback.message.from_user.id} в БД 'get_entity_for_issued' в 'show_issued_carts' выполнен успешно")
+        f" Запрос {callback.from_user.id} в БД 'get_entity_for_issued' в 'show_issued_carts' выполнен успешно")
     except Exception as e:
         logger.exception(
-            f" Запрос {callback.message.from_user.id} в БД 'get_entity_for_issued' "
+            f" Запрос {callback.from_user.id} в БД 'get_entity_for_issued' "
             f"в 'show_issued_carts' выполнен неуспешно: {e}")
         return
     await callback.message.answer(
@@ -787,16 +789,16 @@ async def close_cart(callback: CallbackQuery) -> None:
         cart_id = int(callback.data.split("_")[1])
     except Exception as e:
         logger.exception(
-            f" Ошибка {callback.message.from_user.id} в номера корзины в 'close_cart': {e}")
+            f" Ошибка {callback.from_user.id} в номера корзины в 'close_cart': {e}")
         return
     try:
         set_entity_close(session, cart_id, Cart)
         logger.info(
-            f" Запрос {callback.message.from_user.id} в БД 'set_entity_close' в 'close_cart' выполнен успешно"
+            f" Запрос {callback.from_user.id} в БД 'set_entity_close' в 'close_cart' выполнен успешно"
         )
     except Exception as e:
         logger.exception(
-            f" Запрос {callback.message.from_user.id} в БД 'set_entity_close' "
+            f" Запрос {callback.from_user.id} в БД 'set_entity_close' "
             f"в 'close_cart' выполнен неуспешно: {e}"
         )
         return
@@ -816,11 +818,11 @@ async def show_done_orders(callback: CallbackQuery) -> None:
     try:
         entities = get_entity_for_done(session, Order)
         logger.info(
-            f" Запрос {callback.message.from_user.id} в БД 'get_entity_for_done' в 'show_done_orders' выполнен успешно"
+            f" Запрос {callback.from_user.id} в БД 'get_entity_for_done' в 'show_done_orders' выполнен успешно"
         )
     except Exception as e:
         logger.exception(
-            f" Запрос {callback.message.from_user.id} в БД 'get_entity_for_done' "
+            f" Запрос {callback.from_user.id} в БД 'get_entity_for_done' "
             f"в 'show_done_orders' выполнен неуспешно: {e}"
         )
         return
@@ -838,7 +840,7 @@ async def show_order_for_done(callback: CallbackQuery):
         order_id = int(callback.data.split("_")[1])
     except Exception as e:
         logger.exception(
-            f" Ошибка {callback.message.from_user.id} в номере  корзины {callback.data.split("_")[1]} в 'show_order_for_done': {e}"
+            f" Ошибка {callback.from_user.id} в номере  корзины {callback.data.split("_")[1]} в 'show_order_for_done': {e}"
         )
         return
     user_id = callback.from_user.id
@@ -846,11 +848,11 @@ async def show_order_for_done(callback: CallbackQuery):
     try:
         items = get_entity_items(session, order_id, OrderItems)
         logger.info(
-            f" Запрос {callback.message.from_user.id} в БД 'get_entity_items' в 'show_order_for_done' выполнен успешно"
+            f" Запрос {callback.from_user.id} в БД 'get_entity_items' в 'show_order_for_done' выполнен успешно"
         )
     except Exception as e:
         logger.exception(
-            f" Запрос {callback.message.from_user.id} в БД 'get_entity_items, номер заказа {order_id}' "
+            f" Запрос {callback.from_user.id} в БД 'get_entity_items, номер заказа {order_id}' "
             f" пользователя {user_id} в 'show_order_for_done' выполнен неуспешно: {e}"
         )
         return
@@ -868,11 +870,11 @@ async def show_order_for_done(callback: CallbackQuery):
     try:
         entity = get_entity_by_id(session,order_id, Order).is_issued
         logger.info(
-            f" Запрос {callback.message.from_user.id} в БД 'get_entity_by_id' в 'show_order_for_done' выполнен успешно"
+            f" Запрос {callback.from_user.id} в БД 'get_entity_by_id' в 'show_order_for_done' выполнен успешно"
         )
     except Exception as e:
         logger.exception(
-            f" Запрос {callback.message.from_user.id} в БД 'get_entity_by_id, номер заказа {order_id}' "
+            f" Запрос {callback.from_user.id} в БД 'get_entity_by_id, номер заказа {order_id}' "
             f" пользователя {user_id} в 'show_order_for_done' выполнен неуспешно: {e}"
         )
         return
@@ -906,7 +908,7 @@ async def get_order_for_done(callback: CallbackQuery) -> None:
         order_id = int(callback.data.split("_")[1])
     except Exception as e:
         logger.exception(
-            f" Ошибка {callback.message.from_user.id} в номере  корзины {callback.data.split('_')[1]} в 'get_order_for_done': {e}"
+            f" Ошибка {callback.from_user.id} в номере  корзины {callback.data.split('_')[1]} в 'get_order_for_done': {e}"
         )
         return
     sent_message = await callback.message.edit_text(
@@ -934,29 +936,29 @@ async def mess_order_for_done(callback: CallbackQuery, state: FSMContext, bot: B
         order_id = int(callback.data.split("_")[1]) if callback.data.split("_")[1] != "comm" else int(callback.data.split("_")[2])
     except Exception as e:
         logger.exception(
-            f" Ошибка {callback.message.from_user.id} в номере  корзины {callback.data.split('_')[1]} в 'mess_order_for_done': {e}"
+            f" Ошибка {callback.from_user.id} в номере  корзины {callback.data.split('_')[1]} в 'mess_order_for_done': {e}"
         )
         return
     try:
         entity = get_entity_by_id(session, order_id, Order)
         logger.info(
-            f" Запрос {callback.message.from_user.id} в БД 'get_entity_by_id' в 'mess_order_for_done' выполнен успешно"
+            f" Запрос {callback.from_user.id} в БД 'get_entity_by_id' в 'mess_order_for_done' выполнен успешно"
         )
     except Exception as e:
         logger.exception(
-            f" Запрос {callback.message.from_user.id} в БД 'get_entity_by_id, номер заказа {order_id}' "
+            f" Запрос {callback.from_user.id} в БД 'get_entity_by_id, номер заказа {order_id}' "
             f" в 'mess_order_for_done' выполнен неуспешно: {e}"
         )
         return
     try:
         user = await bot.get_chat(get_costumer_tgid(session, entity.user_id))
         logger.info(
-            f" Запрос {callback.message.from_user.id} в БД 'get_costumer_tgid' в 'mess_order_for_done' выполнен успешно"
+            f" Запрос {callback.from_user.id} в БД 'get_costumer_tgid' в 'mess_order_for_done' выполнен успешно"
             f"получен {user.id}"
         )
     except Exception as e:
         logger.exception(
-            f" Запрос {callback.message.from_user.id} в БД 'get_costumer_tgid', номер заказа {order_id}' "
+            f" Запрос {callback.from_user.id} в БД 'get_costumer_tgid', номер заказа {order_id}' "
             f" в 'mess_order_for_done' выполнен неуспешно: {e}"
         )
         return
@@ -972,7 +974,7 @@ async def mess_order_for_done(callback: CallbackQuery, state: FSMContext, bot: B
             set_entity_for_issue(session, order_id, Order)
         except Exception as e:
             logger.exception(
-                f" Запрос {callback.message.from_user.id} в БД 'set_entity_for_issue', номер заказа {order_id}' "
+                f" Запрос {callback.from_user.id} в БД 'set_entity_for_issue', номер заказа {order_id}' "
                 f" в 'mess_order_for_done' выполнен неуспешно: {e}"
             )
         return
@@ -982,7 +984,7 @@ async def mess_order_for_done(callback: CallbackQuery, state: FSMContext, bot: B
         await state.update_data(cart_id=order_id)
         await callback.message.answer("Введите текст комментария")
         logger.info(
-            f" Запрос {callback.message.from_user.id} в 'mess_order_for_done' перешел"
+            f" Запрос {callback.from_user.id} в 'mess_order_for_done' перешел"
             f"на стейт CommentStatesOrder.CommentOrder")
         await state.set_state(CommentStatesOrder.CommentOrder)
     await callback.answer()
@@ -1030,12 +1032,12 @@ async def show_issued_orders(callback: CallbackQuery) -> None:
     try:
         entities = get_entity_for_issued(session, Order)
         logger.info(
-            f" Запрос {callback.message.from_user.id} в БД 'get_entity_for_issued' "
+            f" Запрос {callback.from_user.id} в БД 'get_entity_for_issued' "
             f"в 'show_issued_orders' выполнен успешно"
         )
     except Exception as e:
         logger.exception(
-            f" Запрос {callback.message.from_user.id} в БД 'get_entity_for_issued', номер заказа"
+            f" Запрос {callback.from_user.id} в БД 'get_entity_for_issued', номер заказа"
             f" в 'show_issued_orders' выполнен неуспешно: {e}"
         )
         return
@@ -1050,18 +1052,18 @@ async def close_order(callback: CallbackQuery) -> None:
         order_id = int(callback.data.split("_")[1])
     except Exception as e:
         logger.exception(
-            f" Ошибка {callback.message.from_user.id} в номере  корзины {callback.data.split('_')[1]} в 'close_order': {e}"
+            f" Ошибка {callback.from_user.id} в номере  корзины {callback.data.split('_')[1]} в 'close_order': {e}"
         )
         return
     try:
         set_entity_close(session, order_id, Order)
         logger.info(
-            f" Запрос {callback.message.from_user.id} в БД 'set_entity_close' {order_id} "
+            f" Запрос {callback.from_user.id} в БД 'set_entity_close' {order_id} "
             f"в 'close_order' выполнен успешно"
         )
     except Exception as e:
         logger.exception(
-            f" Запрос {callback.message.from_user.id} в БД 'set_entity_close', номер заказа {order_id}"
+            f" Запрос {callback.from_user.id} в БД 'set_entity_close', номер заказа {order_id}"
             f" в 'close_order' выполнен неуспешно: {e}"
         )
         return

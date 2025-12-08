@@ -469,10 +469,11 @@ def set_entity_for_issue(session: Session, entity_id, model):
         update(model)
             .where(model.id == entity_id)
             .values(is_done=False, is_issued=True, is_done_at=datetime.now())
-        )
-    session.execute(stmt)
+        ).returning(model)
+    result = session.execute(stmt)
+    updated_entity = result.scalar_one_or_none()
     session.commit()
-    return session.get(model, id)
+    return updated_entity
 
 
 def get_entity_for_issued(session: Session, model):
