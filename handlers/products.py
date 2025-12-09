@@ -6,12 +6,12 @@ This module contains handlers for product interactions.
 import json
 
 from aiogram import Router, F, types
-from aiogram.types import Message, CallbackQuery
-from sqlalchemy.ext.asyncio import AsyncSession
+from aiogram.types import CallbackQuery
 
 from database.db import get_product_description, session
 from keyboards.describe_kb import create_describe_keyboard
 from services.search import clean_description
+from loguru import logger
 
 router = Router(name='products_router')
 
@@ -22,15 +22,31 @@ message_store = {}
 @router.callback_query(F.data.startswith("description_"))
 async def show_description(callback: CallbackQuery):
     """Обработчик вывода на экран описания товара"""
-    product_id = int(callback.data.split("_")[1])
+    try:
+        product_id = int(callback.data.split("_")[1])
+    except Exception as e:
+        logger.exception(
+            f" Запрос пользователя {callback.from_user.id} преобразование номера товара {callback.data.split("_")[1]} в целое "
+            f"  в 'show_description' выполнен неуспешно: {e}"
+        )
+        return
     if callback.data.split("_")[2] == "True":
         order = True
     else:
         order = False
-    print(order)
-    product = get_product_description(session, product_id)
+    try:
+        product = get_product_description(session, product_id)
+        logger.info(
+            f"'show_description':  {callback.from_user.id} получил данные 'get_product_description' "
+        )
+    except Exception as e:
+        logger.exception(
+            f" Запрос пользователя {callback.from_user.id} в БД 'get_product_description' "
+            f"  в 'show_description' выполнен неуспешно: {e}"
+        )
+        return
+
     description = clean_description(product.description)
-    print(len(product.characteristics), product.characteristics)
     if len(product.characteristics) > 2:
         description += "\nХарактеристики:"
         opisan = json.loads(product.characteristics)
@@ -40,16 +56,12 @@ async def show_description(callback: CallbackQuery):
     desc_msg = await callback.message.answer(text= description, parse_mode="HTML", reply_markup=create_describe_keyboard(product_id, order).as_markup())
     message_store["msg_id"] = [photo_msg.message_id, desc_msg.message_id]
     await callback.answer("Важное сообщение!", show_alert=False)
-    print(message_store)
-
 
 
 @router.callback_query(F.data.startswith('close_describe'))
 async def close_describe(callback: types.CallbackQuery):
-    """
-    Callback handler to close the description of a product.
-
-    Deletes the photo and description messages associated with the product.
+    """Callback handler to close the description of a product.
+        Deletes the photo and description messages associated with the product.
     """
     msg_ids = message_store["msg_id"]
     if msg_ids:

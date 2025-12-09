@@ -5,17 +5,15 @@ This module contains helper functions for product handling.
 """
 import asyncio
 
-from aiogram.types import InputFile
-
 from database.db import get_products_by_category
-from database.models import Product
 from keyboards.product_cards import create_product_card_keyboard
 from keyboards.catalog_control import create_control_keyboard
 
+from loguru import logger
+
 
 async def send_product_card(message, product, index=None, total=None):
-    """
-    Отправляет карточку товара в чат
+    """Отправляет карточку товара в чат
     Args:
         message: Объект сообщения для ответа
         product: Объект товара
@@ -81,7 +79,7 @@ async def send_product_card(message, product, index=None, total=None):
                 )
 
     except Exception as e:
-        print(f"Ошибка отправки карточки товара {product.id}: {e}")
+        logger.exception(f"Ошибка отправки карточки товара {product.id}: {e}")
         # Аварийный вариант
         keyboard = create_product_card_keyboard(product.id)
         await message.answer(
@@ -143,8 +141,7 @@ async def send_control_message(message, category_id, current_offset, total_produ
 
 
 async def start_category_products(message, category_id, session, in_stock: bool):
-    """
-    Начинает показ товаров выбранной категории
+    """ Начинает показ товаров выбранной категории
     Args:
         message: Объект сообщения
         category_id: ID выбранной категории
@@ -152,7 +149,17 @@ async def start_category_products(message, category_id, session, in_stock: bool)
         in_stock: Тру если показывается только товар в наличии
     """
     # Получаем товары категории
-    products = get_products_by_category(session, category_id, in_stock)
+    try:
+        products = get_products_by_category(session, category_id, in_stock)
+        logger.info(
+            f"'start_category_products':  {message.from_user.id} получил данные 'get_products_by_category' "
+        )
+    except Exception as e:
+        logger.exception(
+            f" Запрос пользователя {message.from_user.id} в БД 'get_products_by_category' "
+            f"  в 'start_category_products' выполнен неуспешно: {e}"
+        )
+        return
 
     if not products:
         await message.answer("😔 В этой категории пока нет товаров")
