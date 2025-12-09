@@ -71,6 +71,9 @@ router = Router(name='admin')
 user_cart_messages = {}
 
 
+logger = logger.bind(name="admin")
+
+
 class AnswerQuestion(StatesGroup):
     """
     Состояния для обработки ответов на вопросы пользователей.

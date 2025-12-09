@@ -124,7 +124,7 @@ async def get_items_count(message: Message, state: FSMContext):
             await message.answer(text="Товар добавлен в корзину", show_alert=True)
         logger.info(
             f"Пользователь {message.from_user.id} сохранил товар {data['product_id']} в корзину {data['cart_id']}"
-            f" количество {data['product_id']} запрос 'save_product_to_entity' get_items_count"
+            f" количество {data['count']} запрос 'save_product_to_entity' get_items_count"
         )
     except Exception as e:
         logger.exception(
@@ -189,7 +189,6 @@ async def show_carts(message: Message):
         parse_mode="Markdown"
     )
     user_cart_messages[message.from_user.id].append(final_msg.message_id)
-    print(user_cart_messages)
 
 
 # -------------------------------------------------------

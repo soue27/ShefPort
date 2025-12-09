@@ -1,8 +1,9 @@
 import imaplib
 import email
-import logging
+
 import os
 
+from loguru import logger
 
 from data.config import MAIL_USER, MAIL_PASS, SENDER_FILTER, READ_DIR, MAIL_HOST
 from database.db import session
@@ -16,7 +17,7 @@ from services.db_updater import load_report, update_products_from_df
 # SENDER_FILTER = "sender@example.com"
 # SAVE_DIR = "attachments"
 
-logger = logging.getLogger("mail_checker")
+logger = logger.bind(name="mail_checker")
 
 # BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # SAVE_DIR = os.path.join(BASE_DIR, "..", "data")

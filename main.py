@@ -25,7 +25,7 @@ def setup_logging():
     # =========================
     logger.add(
         sink=lambda msg: print(msg, end=""),
-        format="<green>{time:HH:mm:ss}</green> | <level>{level}</level> | {message}",
+        format="<green>{time:HH:mm:ss}</green> | {name} | <level>{level}</level> | {message}",
         level="DEBUG",
     )
     # =========================
@@ -37,7 +37,7 @@ def setup_logging():
         compression="zip",
         level="DEBUG",
         enqueue=True,
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
+        format="{time:YYYY-MM-DD HH:mm:ss} | {name} | {level} | {message}",
     )
     # =========================
     # 3) Файл app.log — только ошибки
@@ -49,7 +49,7 @@ def setup_logging():
         level="ERROR",
         enqueue=True,
         filter=lambda record: record["level"].no >= 40,
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
+        format="{time:YYYY-MM-DD HH:mm:ss} | {name} | {level} | {message}",
     )
 
 async def main():
