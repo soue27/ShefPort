@@ -84,7 +84,10 @@ async def check_mail_and_download(bot=None):
     #Обработка файла, загрузка в БД, выборка отсутствующих товаров и отправка админу
     df = load_report()
     count = update_products_from_df(df=df, session=session)
-    print(df, df.shape)
-    print(count)
-    if bot and count > 0:  # Only try to send file if bot instance is provided
-        await send_file_to_admin("data/output.xlsx", bot)
+    try:
+        if bot and count > 0:  # Only try to send file if bot instance is provided
+            await send_file_to_admin("data/output.xlsx", bot)
+            logger.info("Файл отправлен админу")
+        logger.info("Файл не отправлялся  админу")
+    except Exception as e:
+        logger.exception(f"Ошибка при отправке файла админу: {e}")

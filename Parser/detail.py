@@ -5,6 +5,7 @@ import json
 import csv
 from urllib.parse import urljoin
 import re
+from loguru import logger
 
 
 def parse_product_details_chefport(product_url):
@@ -122,7 +123,7 @@ def parse_product_details_chefport(product_url):
         return details
 
     except Exception as e:
-        print(f"✗ Ошибка при парсинге {product_url}: {e}")
+        logger.exception(f"✗ Ошибка при парсинге {product_url}: {e}")
         return None
 
 

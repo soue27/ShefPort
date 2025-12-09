@@ -19,22 +19,17 @@ from database.models import Product, Category  # твоя модель
 
 
 def load_report(path: str = "data/report.xls") -> pd.DataFrame:
-    """
-    Loads report from file and returns DataFrame.
-
+    """Loads report from file and returns DataFrame.
     Args:
         path (str): Path to report file.
-
     Returns:
         pd.DataFrame: DataFrame with report data.
     """
     # Загружаем только нужные столбцы
     usecols = ["Код", "Цена продажи", "Количество"]
     df = pd.read_excel(path, usecols=usecols, dtype={"Код": str})
-    print(df)
     # Приводим поля "Код" и "Артикул" к строке
     df["Код"] = df["Код"].astype(str).str.strip()
-
     # Чистим типы
     df["Цена продажи"] = pd.to_numeric(df["Цена продажи"], errors="coerce").fillna(0)
     df["Количество"] = pd.to_numeric(df["Количество"], errors="coerce").fillna(0)
@@ -43,17 +38,14 @@ def load_report(path: str = "data/report.xls") -> pd.DataFrame:
 
 
 def update_notfound_to_bd(df, session):
-    """
-    Converts the "Количество" column to numeric values or sets it to 0 if conversion fails.
-
-    Args:
+    """Converts the "Количество" column to numeric values or sets it to 0 if conversion fails.
+     Args:
         df (pd.DataFrame): DataFrame containing the "Количество" column.
         session (Session): SQLAlchemy session for database operations.
     Returns:
         pd.DataFrame: DataFrame with the "Количество" column converted to numeric values or set to 0.
     """
     products = []
-    # df = pd.read_excel("data/filtered.xls", dtype={"Код": str})
     for _, row in df.iterrows():
         product = Product(
             category_id=int(row.get("Категория")),

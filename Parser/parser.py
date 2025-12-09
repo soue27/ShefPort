@@ -2,11 +2,11 @@ from datetime import datetime
 
 import requests
 from bs4 import BeautifulSoup
-import json
 import time
 import json
 import csv
 from urllib.parse import urljoin
+from loguru import logger
 
 def get_categories_requests() -> list[dict]:
     """
@@ -99,7 +99,7 @@ def parse_products_from_category(base_url: str) -> list[dict]:
             time.sleep(1)  # Задержка между запросами
 
         except requests.RequestException as e:
-            print(f"Ошибка при запросе страницы {page}: {e}")
+            logger.exception(f"Ошибка при запросе страницы {page}: {e}")
             break
 
     return all_products
@@ -186,13 +186,13 @@ def parse_products_from_page(soup: BeautifulSoup, base_url: str) -> list[dict]:
             products.append(product_data)
 
         except Exception as e:
-            print(f"Ошибка при парсинге товара: {e}")
+            logger.exception(f"Ошибка при парсинге товара: {e}")
             continue
 
     return products
 
 
-def extract_price(price_text: str) -> float:
+def extract_price(price_text: str) -> float | None:
     """
     Extracts numeric price from price text.
 
@@ -208,6 +208,7 @@ def extract_price(price_text: str) -> float:
         cleaned = cleaned.replace(',', '.').replace(' ', '')
         return float(cleaned) if cleaned else None
     except (ValueError, TypeError):
+        logger.exception("Ошибка преобразования данных в 'extract_price'")
         return None
 
 
