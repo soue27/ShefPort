@@ -8,6 +8,7 @@ import subprocess
 
 
 class PostrgresBackup:
+    """Класс для создния бэкапа базы данных"""
     def __init__(self, db_name, user, host, port, backup_dir, pg_password=None):
         self.host = host
         self.port = port
