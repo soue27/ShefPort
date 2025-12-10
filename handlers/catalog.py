@@ -133,3 +133,4 @@ async def handle_catalog_complete(callback: CallbackQuery):
         parse_mode="HTML"
     )
     await callback.answer()
+

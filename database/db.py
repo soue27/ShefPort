@@ -14,7 +14,6 @@ from datetime import datetime
 from typing import Type, Optional, List, Any
 
 import pandas as pd
-from mypy.nodes import TryStmt
 from sqlalchemy import select, func, Engine, types, update, delete
 from aiogram.types import CallbackQuery
 from sqlalchemy import create_engine
@@ -485,7 +484,7 @@ def get_entity_for_issued(session: Session, model):
 
 def set_entity_close(session: Session, id, model):
     """Закрывает корзину Cart, Order после выдачи товара"""
-    stmt = update(model).where(model.id == id).values(is_issued=False, is_issued_at=True)
+    stmt = update(model).where(model.id == id).values(is_issued=False, is_issued_at=datetime.now())
     session.execute(stmt)
     session.commit()
     return session.get(model, id)

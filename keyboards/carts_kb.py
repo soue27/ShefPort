@@ -42,10 +42,16 @@ def cart_main_kb(cart_id: int, model: str) -> InlineKeyboardMarkup:
     return kb.as_markup()
 
 
-def previous_cart_kb() -> InlineKeyboardMarkup:
+def previous_cart_kb(model: str) -> InlineKeyboardMarkup:
     """Клавиатура для перехода к просмотру предыдущих заказов"""
+    callback_data = "previous_cart"
+    match model:
+        case "Order":
+            callback_data = "previous_order"
+        case "Cart":
+            callback_data = "previous_cart"
     kb: InlineKeyboardBuilder = InlineKeyboardBuilder()
-    kb.button(text="Просмотр предыдущих заказов", callback_data="previous_cart")
+    kb.button(text="Просмотр предыдущих заказов", callback_data=callback_data)
     return kb.as_markup()
 
 

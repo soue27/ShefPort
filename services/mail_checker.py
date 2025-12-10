@@ -8,7 +8,7 @@ from loguru import logger
 from data.config import MAIL_USER, MAIL_PASS, SENDER_FILTER, READ_DIR, MAIL_HOST
 from database.db import session
 from handlers.admin import send_file_to_admin
-from services.db_updater import load_report, update_products_from_df
+from services.updater_db import load_report, update_products_from_df
 
 # Конфигурация
 # MAIL_HOST = "imap.mail.ru"
@@ -88,6 +88,5 @@ async def check_mail_and_download(bot=None):
         if bot and count > 0:  # Only try to send file if bot instance is provided
             await send_file_to_admin("data/output.xlsx", bot)
             logger.info("Файл отправлен админу")
-        logger.info("Файл не отправлялся  админу")
     except Exception as e:
         logger.exception(f"Ошибка при отправке файла админу: {e}")

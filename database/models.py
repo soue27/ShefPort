@@ -116,7 +116,7 @@ class Cart(AbstractBase):
     is_done = Column(Boolean, default=False)  # Отметка о там, что сбор корзины закончен
     is_issued = Column(Boolean, default=False)  # Отметка о там, что товар из корзины выдан
     is_done_at = Column(DateTime, nullable=True)  # дата сбора корзины
-    is_issued_at = Column(Boolean, default=False)  # Дата выдачи корзины
+    is_issued_at = Column(DateTime, nullable=True)  # Дата выдачи корзины
 
     # Relationships
     user = relationship("Costumer", back_populates="carts")
@@ -203,7 +203,7 @@ class Order(AbstractBase):
     is_done = Column(Boolean, default=False)  #  True проводится сбор корзины
     is_done_at = Column(DateTime, nullable=True) # дата оконачания заказа
     is_issued = Column(Boolean, default=False)  # True - проводится выдача корзины
-    is_issued_at = Column(Boolean, default=False)  # Дата выдачи корзины
+    is_issued_at = Column(DateTime, nullable=True)  # Дата выдачи корзины
 
 
     # Relationships

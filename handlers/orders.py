@@ -36,7 +36,7 @@ from keyboards.carts_kb import (
     previous_cartlist_kb,
     back_kb,
 )
-from keyboards.categorieskb import get_categories_kb
+from keyboards.categorieskb import get_categories_kb, show_in_stock_kb
 
 router = Router(name='orders')
 
@@ -60,7 +60,7 @@ async def add_product_to_order(callback: types.CallbackQuery, state: FSMContext)
     try:
         product: Product = get_product_by_id(session, product_id)
         logger.info(
-            f"'add_product_to_order': Админ {callback.from_user.id} получил данные 'get_product_by_id' "
+            f"'add_product_to_order': Админ {callback.from_user.id} получил данные 'get_product_by_id' {product_id} "
         )
     except Exception as e:
         logger.exception(
@@ -83,10 +83,9 @@ async def add_product_to_order(callback: types.CallbackQuery, state: FSMContext)
                             user_id=callback.from_user.id,
                             price=product.price,
                             name=product.name,
-                            order_id=order.id,
     )
     if not order:
-         order = set_active_entity(session, callback.from_user.id, Order)
+        order = set_active_entity(session, callback.from_user.id, Order)
     try:
         order = get_active_entity(session, callback.from_user.id, Order)
         logger.info(
@@ -99,7 +98,7 @@ async def add_product_to_order(callback: types.CallbackQuery, state: FSMContext)
         )
         return
 
-    await state.update_data(cart_id=order.id)
+    await state.update_data(order_id=order.id)
     if product.unit in ["кг", "кг."]:
         text = f"Пожалуйста, введите количество товара: <b>{product.name}</b> для заказа\n" \
                f"'Обратите внимание товар весовой'"
@@ -165,7 +164,7 @@ async def show_order(message: Message):
         await message.answer(
             "Ваша корзина пуста, выберите товары для добавления в каталоге, \n"
             "либо нажмите 👇 для просмотра Ваших заказов",
-            reply_markup=previous_cart_kb(),
+            reply_markup=previous_cart_kb("Order"),
         )
         return
     try:
@@ -413,7 +412,7 @@ async def confirm_order_handler(call: CallbackQuery):
 # -------------------------------------------------------
 @router.callback_query(F.data.startswith("Order_delete:"))
 async def delete_order(call: CallbackQuery):
-    """Delete Cart"""
+    """Delete Order"""
     _,order_id = call.data.split(":")
     try:
         order_id = int(order_id)
@@ -478,7 +477,7 @@ async def delete_order_cancel(call: CallbackQuery):
         return
     await call.message.edit_text(
         f"Итого: *{item.total_amount:.2f}*₽",
-        reply_markup=cart_main_kb(item.id, "Cart"),
+        reply_markup=cart_main_kb(item.id, "Order"),
         parse_mode="Markdown"
     )
     await call.answer(text="Удаление отменено ❌", show_alert=False)
@@ -504,7 +503,7 @@ async def cleanup_ordermessages(call: CallbackQuery):
 # -------------------------------------------------------
 #                Показ предыдущих закзазов
 # -------------------------------------------------------
-@router.callback_query(F.data == "previous_cart")
+@router.callback_query(F.data == "previous_order")
 async def show_previus_cart(callback: CallbackQuery):
     user_order_messages[callback.from_user.id] = []
     try:
@@ -533,7 +532,7 @@ async def show_previus_cart(callback: CallbackQuery):
             return
         await callback.message.edit_text("У вас не было покупок до настоящего момента, \n"
                                       "выберите товары в нашем каталоге",
-                                      reply_markup=get_categories_kb(categories))
+                                      reply_markup=show_in_stock_kb())
         await callback.answer()
         return
     else:  # Вывод на экран предыдущих корзин

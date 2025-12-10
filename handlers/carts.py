@@ -35,7 +35,7 @@ from keyboards.carts_kb import (
     previous_cartlist_kb,
     back_kb,
 )
-from keyboards.categorieskb import get_categories_kb
+from keyboards.categorieskb import get_categories_kb, show_in_stock_kb
 
 router = Router(name="carts")
 
@@ -151,7 +151,7 @@ async def show_carts(message: Message):
     if not cart or not cart.items:
         await message.answer("Ваша корзина пуста, выберите товары для добавления в каталоге, \n"
                              "либо нажмите 👇 для просмотра Ваших заказов",
-                             reply_markup=previous_cart_kb())
+                             reply_markup=previous_cart_kb("Cart"))
 
         return
     try:
@@ -519,7 +519,7 @@ async def show_previus_cart(callback: CallbackQuery):
             return
         await callback.message.edit_text("У вас не было покупок до настоящего момента, \n"
                                       "выберите товары в нашем каталоге",
-                                      reply_markup=get_categories_kb(categories))
+                                      reply_markup=show_in_stock_kb())
         await callback.answer()
         return
     else:  # Вывод на экран предыдущих корзин
@@ -571,3 +571,6 @@ async def show_previus_item(callback: CallbackQuery):
     if user_id in user_cart_messages and user_cart_messages[user_id]:
         # Удаляем и возвращаем первый элемент
         user_cart_messages[user_id].pop(0)
+
+
+
