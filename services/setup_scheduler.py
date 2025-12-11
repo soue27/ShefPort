@@ -11,6 +11,7 @@ from loguru import logger
 async def start_sheduler(bot: Bot):
     scheduler = AsyncIOScheduler()
     logger.info("Starting sheduler")
+    #Проверка почты ежедневно в 21.00
     scheduler.add_job(
         check_mail_and_download,
         args=(bot,),  # Pass the bot instance to the function
@@ -19,11 +20,12 @@ async def start_sheduler(bot: Bot):
         minute=0
         )
     logger.info("Start logging")
+    #Резервное копирование базы данных ежедневно в 21.10
     scheduler.add_job(
         backup_and_upload,
         trigger="cron",
-        hour=22,
-        minute=47
+        hour=9,
+        minute=17
         )
     scheduler.start()
 

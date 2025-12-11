@@ -10,14 +10,14 @@ from services.backup_db import PostrgresBackup
 
 class YandexDiskBackup:
     """Класс для загрузки бэкапа на Яндекс диск"""
-    def __init__(self, auth_token, remote_folder):
+    def __init__(self, auth_token, remote_folder) -> None:
         self.y = YaDisk(token=auth_token)
         self.remote_folder = f"app:/{remote_folder.strip('/')}"
 
         if not self.y.exists(self.remote_folder):
             self.y.makedirs(self.remote_folder)
 
-    def upload_backup(self, local_path: Path):
+    def upload_backup(self, local_path: Path) -> str | None:
         """Загрузка файла на Яндекс.Диск"""
         try:
             remote_path = f"{self.remote_folder}/{local_path.name}"
@@ -25,10 +25,54 @@ class YandexDiskBackup:
             logger.info(f"Uploaded backup: {remote_path}")
             return remote_path
         except Exception as e:
-            logger.error(f"Failed to upload backup: {e}")
+            logger.exception(f"Failed to upload backup: {e}")
+
+    def download_backup(self, remote_path: str, local_path: Path) -> Path | None:
+        """Загрузка файла с Яндекс.Диск"""
+        try:
+            self.y.download(remote_path, str(local_path))
+            logger.info(f"Downloaded backup: {remote_path}")
+            return local_path
+        except Exception as e:
+            logger.exception(f"Failed to download backup: {e}")
+
+    def get_list_backups(self, remote_folder: str = 'backups') -> list[str] | None:
+        """Получение списка файлов в указанной папке"""
+        folder = f"app:/{remote_folder.strip('/')}"
+
+        if not self.y.exists(folder):
+            return []
+        # Получаем список файлов по имени
+        files_names = [item["path"] for item in self.y.listdir(folder)]
+        files_with_dates = []
+        for name in files_names:
+            full_path = f"{name}"
+            meta = self.y.get_meta(full_path)
+            # исправляем naive datetime
+            mod = meta.modified
+            if mod.tzinfo is None:
+                mod = mod.replace(tzinfo=timezone.utc)
+            files_with_dates.append((full_path, mod))
+            # сортируем по дате (новые → старые)
+            files_with_dates.sort(key=lambda f: f[1], reverse=True)
+        return [f[0] for f in files_with_dates]
 
 
-    def clean_old_backups(self, days: int=7):
+    def get_latest_backup(self) -> str | None:
+        """Возвращает путь к самому свежему дампу на Яндекс Диске"""
+        try:
+            files = self.get_list_backups()
+            if not files:
+                return None
+            latest = files[0]
+            meta = self.y.get_meta(latest)
+            latest = meta.name
+            logger.info(f"Latest backup: {latest}")
+            return f"{self.remote_folder}/{latest}"
+        except Exception as e:
+            logger.exception(f"Failed to get latest backup: {e}")
+
+    def clean_old_backups(self, days: int=7) -> None:
         """Удаление старых резервных копий"""
         files = list(self.y.listdir(self.remote_folder))
         now = datetime.now(timezone.utc)
@@ -44,12 +88,12 @@ class YandexDiskBackup:
                     self.y.remove(path_to_delete)
                     logger.info(f"Deleted old backup: {path_to_delete}")
                 except Exception as e:
-                    logger.error(f"Failed to delete old backup {path_to_delete}: {e}")
+                    logger.exception(f"Failed to delete old backup {path_to_delete}: {e}")
 
 
 class BackupManager:
     """Класс для запуска менеджера создание бэкапа и сохранения на Яндекс диск"""
-    def __init__(self, pg_backup: PostrgresBackup, ya_backup: YandexDiskBackup):
+    def __init__(self, pg_backup: PostrgresBackup, ya_backup: YandexDiskBackup) -> None:
         self.pg_backup = pg_backup
         self.ya_backup = ya_backup
 

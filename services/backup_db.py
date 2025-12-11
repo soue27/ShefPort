@@ -3,6 +3,7 @@
 import os
 from datetime import datetime
 from pathlib import Path
+from loguru import logger
 
 import subprocess
 
@@ -38,6 +39,35 @@ class PostrgresBackup:
             "-f", str(filepath),
             self.db_name
         ]
-        subprocess.run(cmd, env=env, check=True)
+        try:
+            subprocess.run(cmd, env=env, check=True)
+            logger.info(f"Backup created successfully: {filepath}")
+        except Exception as e:
+            logger.exception(f"Failed to create backup: {e}")
+            raise e
         print(filepath)
         return filepath
+
+    def restore_backup(self, backup_path: Path):
+        """Восстановление базы данных из бэкапа"""
+        env = os.environ.copy()
+        if not backup_path.exists():
+            raise FileNotFoundError(f"Backup file not found: {backup_path}")
+        logger.info(f"Starting Restore backup from dump: {backup_path}")
+        if self.pg_password:
+            env['PGPASSWORD'] = self.pg_password
+        cmd = [
+            "psql",
+            "-h", self.host,
+            "-p", str(self.port),
+            "-U", self.user,
+            "-d", self.db_name,
+            "-f", str(backup_path)
+        ]
+        logger.info(f"Running command: {' '.join(cmd)}")
+        try:
+            subprocess.run(cmd, env=env, check=True)
+            logger.info(f"Backup restored successfully")
+        except Exception as e:
+            logger.exception(f"Failed to restore backup: {e}")
+            raise e
