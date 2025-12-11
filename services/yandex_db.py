@@ -27,10 +27,13 @@ class YandexDiskBackup:
         except Exception as e:
             logger.exception(f"Failed to upload backup: {e}")
 
-    def download_backup(self, remote_path: str, local_path: Path) -> Path | None:
+    def download_backup(self, remote_path: str, local_path: str) -> str | None:
         """Загрузка файла с Яндекс.Диск"""
+        #local_path = Path(local_path)
+        file_name = remote_path.split("/")[-1]
+        local_path = f"{local_path}/{file_name}"
         try:
-            self.y.download(remote_path, str(local_path))
+            self.y.download(remote_path, local_path)
             logger.info(f"Downloaded backup: {remote_path}")
             return local_path
         except Exception as e:
@@ -43,7 +46,7 @@ class YandexDiskBackup:
         if not self.y.exists(folder):
             return []
         # Получаем список файлов по имени
-        files_names = [item["path"] for item in self.y.listdir(folder)]
+        files_names = [item["path"] for item in self.y.listdir(folder) if "data" in item["name"]]
         files_with_dates = []
         for name in files_names:
             full_path = f"{name}"

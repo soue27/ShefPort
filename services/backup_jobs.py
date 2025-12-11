@@ -18,16 +18,17 @@ async def backup_and_upload() -> None:
     None
     """
     try:
-        # --- создаём локальный бэкап ---
+        # --- создаём локальный полный бэкап ---
         pg_backup = PostrgresBackup(
             db_name=DB_NAME,
             user=DB_USER,
             host=DB_HOST,
             port=DB_PORT,
             backup_dir=DB_BACKUP_DIR,
-            pg_password=DB_PASSWORD
+            pg_password=DB_PASSWORD,
+            full=True
         )
-        backup_file: Path = pg_backup.create_backup()  # возвращает Path
+        # backup_file: Path = pg_backup.create_backup()  # возвращает Path
 
         # --- загружаем на Яндекс.Диск ---
         ya_backup = YandexDiskBackup(
@@ -40,4 +41,28 @@ async def backup_and_upload() -> None:
         )
         manager.run()
     except Exception as e:
-        logger.error(f"Failed to backup/upload: {e}")
+        logger.error(f"Failed to full backup/upload: {e}")
+    try:
+        # --- создаём локальный дата бэкап ---
+        pg_backup = PostrgresBackup(
+            db_name=DB_NAME,
+            user=DB_USER,
+            host=DB_HOST,
+            port=DB_PORT,
+            backup_dir=DB_BACKUP_DIR,
+            pg_password=DB_PASSWORD,
+        )
+        # backup_file: Path = pg_backup.create_backup()  # возвращает Path
+
+        # --- загружаем на Яндекс.Диск ---
+        ya_backup = YandexDiskBackup(
+            auth_token=YANDEX_TOKEN,
+            remote_folder=REMOTE_FOLDER
+        )
+        manager = BackupManager(
+            pg_backup=pg_backup,
+            ya_backup=ya_backup
+        )
+        manager.run()
+    except Exception as e:
+        logger.error(f"Failed to data only backup/upload: {e}")

@@ -24,8 +24,8 @@ async def start_sheduler(bot: Bot):
     scheduler.add_job(
         backup_and_upload,
         trigger="cron",
-        hour=9,
-        minute=17
+        hour=21,
+        minute=10
         )
     scheduler.start()
 
