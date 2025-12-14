@@ -22,10 +22,35 @@ from sqlalchemy.orm import Session, DeclarativeBase, sessionmaker
 from data.config import DB_URL, ECHO
 from database.models import Base, Costumer, Product, Category, Question, News, Cart, Order, CartItems, AbstractBase, \
     OrderItems
+from sqlalchemy.pool import QueuePool
 from services.search import normalize_text
 
 
-engine = create_engine(DB_URL, echo=ECHO)
+engine = create_engine(DB_URL,
+                       poolclass=QueuePool,
+                       pool_size=5,  # минимальное количество соединений
+                       max_overflow=10,  # максимальное количество соединений
+                       pool_timeout=30,  # таймаут ожидания (сек)
+                       pool_recycle=1800,  # пересоздавать каждые 30 минут
+                       pool_pre_ping=True,  # проверять перед использованием
+
+                       # Настройки подключения psycopg2
+                       connect_args={
+                           'connect_timeout': 10,
+                           'application_name': 'my_app',
+                           'keepalives': 1,
+                           'keepalives_idle': 30,
+                           'keepalives_interval': 10,
+                           'keepalives_count': 5
+                       },
+
+                       # Другие настройки
+                       echo=False,  # логировать SQL запросы
+                       echo_pool=False,  # логировать операции пула
+                       execution_options={
+                           'isolation_level': 'READ COMMITTED'
+                       }
+                       )
 Base.metadata.create_all(engine)
 session = Session(engine)
 connect = engine.connect()
