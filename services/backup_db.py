@@ -122,6 +122,7 @@ class PostrgresBackup:
         if self.pg_password:
             env["PGPASSWORD"] = self.pg_password
 
+
         try:
             subprocess.run(cmd, check=True, env=env, text=True)
             logger.info("All tables dropped successfully.")
