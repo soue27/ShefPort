@@ -579,7 +579,43 @@ def get_product_by_id(session: Session, product_id: int):
         result = session.scalar(stmt)
         return result
 
+#********************
+# Analitics
+#********************
+
+def get_all_tables_names():
+    """Динамическое получение всех моделей БД для формирования выгрузок"""
+    return Base.metadata.tables.keys()
 
 
+def clean_excel_string(s: str) -> str:
+    """Удаляет неподдерживаемые Excel символы из строки."""
+    if not isinstance(s, str):
+        return s
+    # Убираем все control characters кроме \t и \n
+    return re.sub(r"[\x00-\x08\x0B-\x0C\x0E-\x1F]", "", s)
 
+
+def export_data_to_excel(session: Session, table_name: str, file_path: str):
+    """ Load new products data to database.
+        :param:
+            file_name (str): Path to Excel file with products data.
+            engine (sqlalchemy.engine.Engine): SQLAlchemy engine instance.
+
+    """
+    table = Base.metadata.tables.get(table_name)
+    print(table)
+    # if not table:
+    #     raise ValueError(f"Таблица {table_name} не найдена")
+    # Выполняем SELECT
+    result = session.execute(table.select())
+    df = pd.DataFrame(result.fetchall(), columns=result.keys())
+
+    for col in df.select_dtypes(include=['datetime64[ns, UTC]']).columns:
+        df[col] = df[col].dt.tz_localize(None)
+
+    for col in df.select_dtypes(include=['object']).columns:
+        df[col] = df[col].apply(clean_excel_string)
+    # Сохраняем в Excel
+    df.to_excel(file_path, index=False)
 

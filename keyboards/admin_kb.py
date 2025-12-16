@@ -1,7 +1,7 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from database.db import get_all_categories, session, count_model_records
+from database.db import get_all_categories, session, count_model_records, get_all_tables_names
 from database.models import Question, Cart, Order
 from services.search import plural_form
 
@@ -24,7 +24,8 @@ def main_kb() -> InlineKeyboardMarkup:
                 InlineKeyboardButton(text=f"{count2} - {text2.capitalize()}", callback_data="check_questions"),
                 InlineKeyboardButton(text="Рассылка", callback_data="mailing"),
                  InlineKeyboardButton(text="Recovery latest", callback_data="recovery_latest"),
-                InlineKeyboardButton(text="Recovery list", callback_data="recovery_list"))
+                InlineKeyboardButton(text="Recovery list", callback_data="recovery_list"),
+                InlineKeyboardButton(text="Upload to Excel", callback_data="upload_xlsx"))
     builder.adjust(2)
 
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
@@ -111,4 +112,14 @@ def get_issued_entity(entity_id, model):
         call = "Order"
     builder.row(InlineKeyboardButton(text="Заказ выдан клиенту", callback_data=f"{call}Close_{entity_id}"),
                 InlineKeyboardButton(text="🔙 Назад", callback_data="Back"))
+    return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
+
+
+def get_upload_kb():
+    builder = InlineKeyboardBuilder()
+    tables = get_all_tables_names()
+    for table_name in tables:
+        builder.row(InlineKeyboardButton(text=table_name, callback_data=f"export_{table_name}"))
+    builder.row(InlineKeyboardButton(text="🔙 Назад", callback_data="export_back"))
+    builder.adjust(2)
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)

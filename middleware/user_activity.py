@@ -1,14 +1,11 @@
-from loguru import logger
-from aiogram import BaseMiddleware
+
 from aiogram.types import Message, CallbackQuery
 from datetime import datetime, timezone
-from sqlalchemy.orm import Session
 
 from aiogram import BaseMiddleware
 from sqlalchemy.orm import Session
 
 # from models import User, UserActivity
-from datetime import datetime
 
 from database.db import get_costumer_id
 from database.models import CostumerActivity
@@ -46,7 +43,6 @@ class UserActivityMiddleware(BaseMiddleware):
         # print("===========================")
 
         user_id = get_costumer_id(session, user_id)
-        print(user_id)
 
         # Запись как есть
         activity = CostumerActivity(
