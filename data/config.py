@@ -5,7 +5,7 @@ import os
 load_dotenv()
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
-DB_URL = os.getenv('DB_URL')
+
 DB_BACKUP_DIR = os.getenv('DB_BACKUP_DIR')
 
 DB_NAME = os.getenv('POSTGRES_DB')
@@ -15,6 +15,9 @@ DB_USER = os.getenv('POSTGRES_USER')
 DB_PASSWORD =  os.getenv('POSTGRES_PASSWORD')
 YANDEX_TOKEN = os.getenv('YANDEX_TOKEN')
 REMOTE_FOLDER = os.getenv('REMOTE_FOLDER')
+
+DB_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
 
 ECHO = os.getenv('ECHO', 'False').lower() in ('true', '1', 't')
 
