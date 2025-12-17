@@ -14,10 +14,14 @@ from datetime import datetime
 from typing import Type, Optional, List, Any
 
 import pandas as pd
-from sqlalchemy import select, func, Engine, types, update, delete
+from pandas.core.computation.expressions import where
+from sqlalchemy import select, func, Engine, types, update, delete, literal_column, or_
 from aiogram.types import CallbackQuery
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, DeclarativeBase, sessionmaker
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import MetaData, Table
+from sqlalchemy.engine import Engine
 
 from data.config import DB_URL, ECHO
 from database.models import Base, Costumer, Product, Category, Question, News, Cart, Order, CartItems, AbstractBase, \
@@ -531,9 +535,11 @@ def get_entity_by_user_id(session: Session, user_id: int, model):
 
 
 def load_data(file_name: str, engine: Engine) -> int:
-    """Загрузка новых товаров в БД"""
+    """Загрузка новых товаров обновление товаров в БД"""
     try:
         df = pd.read_excel(file_name, dtype={"article": str})
+        df = df.drop(columns=["id"], errors="ignore")
+
         dtype_config = {
             "name" : types.String(500),
             "url" : types.String(500),
@@ -553,17 +559,49 @@ def load_data(file_name: str, engine: Engine) -> int:
             "category_id" : types.Integer(),
             "ostatok" :types.Float()
         }
+        metadata = MetaData()
+        products = Table('products', metadata, autoload_with=engine)
 
-        df.to_sql(name='products', con=engine, if_exists='append', index=False, dtype=dtype_config)
-        result = df.shape[0]
-        os.remove(file_name)
-        del df
-        return result
+        rows = df.to_dict(orient='records')
+        stmt = insert(products).values(rows)
+        update_columns = {
+            c.name: stmt.excluded[c.name]
+            for c in products.columns
+            if c.name not in ("id", 'article', "created_at")
+        }
+
+        diff_condition = or_(
+            *[
+                products.c[c].is_distinct_from(stmt.excluded[c])
+                for c in update_columns.keys()
+            ]
+        )
+
+        stmt = stmt.on_conflict_do_update(
+            index_elements=["article"],
+            set_=update_columns,
+            where=diff_condition
+        ).returning(products.c.id, literal_column("xmax"))
+
+        with engine.begin() as conn:
+            result = conn.execute(stmt)
+            rows_result = result.fetchall()
+
+        return len(rows)
+
+        return len(rows)
+        # df.to_sql(name='products', con=engine, if_exists='append', index=False, dtype=dtype_config)
+        # result = df.shape[0]
+        # os.remove(file_name)
+        # del df
+        # return result
     except Exception as e:
-        os.remove(file_name)
-        print(e)
-        del df
+        print(f"Ошибка загрузки: {e}")
         return 0
+
+    finally:
+        os.remove(file_name)
+        del df
 
 
 def get_product_by_id(session: Session, product_id: int):

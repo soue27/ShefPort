@@ -537,12 +537,12 @@ async def load_dates(message: Message, bot: Bot):
         return
     try:
         count = load_data("data/forload.xlsx", engine=engine)
-        logger.info("Данные загружены успешно 'load_data' в 'load_dates' ")
+        logger.info(f"Загружено успешно {count} строк 'load_data' в 'load_dates' ")
     except Exception as e:
         logger.exception(f"Ошибка загрузка данных из бота в 'load_data' в 'load_dates': {e}")
         return
     if count != 0:
-        await message.answer(f"Загружено {count} позиций")
+        await message.answer(f"Загружено/изменено {count} позиций")
     else:
         await message.answer("Ошибка загрузки позиций")
 
