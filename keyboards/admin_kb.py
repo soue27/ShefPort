@@ -23,9 +23,12 @@ def main_kb() -> InlineKeyboardMarkup:
                 InlineKeyboardButton(text=f"{count_order_issued} - {text_order.capitalize()} для выдачи" , callback_data="issued_orders"),
                 InlineKeyboardButton(text=f"{count2} - {text2.capitalize()}", callback_data="check_questions"),
                 InlineKeyboardButton(text="Рассылка", callback_data="mailing"),
-                 InlineKeyboardButton(text="Recovery latest", callback_data="recovery_latest"),
-                InlineKeyboardButton(text="Recovery list", callback_data="recovery_list"),
-                InlineKeyboardButton(text="Upload to Excel", callback_data="upload_xlsx"))
+                #  InlineKeyboardButton(text="Recovery latest", callback_data="recovery_latest"),
+                # InlineKeyboardButton(text="Recovery list", callback_data="recovery_list"),
+                InlineKeyboardButton(text="Upload to Excel", callback_data="upload_xlsx"),
+                InlineKeyboardButton(text="Get log file", callback_data="get_log"),
+                )
+
     builder.adjust(2)
 
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
