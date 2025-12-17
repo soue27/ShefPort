@@ -25,9 +25,11 @@ def main_kb() -> InlineKeyboardMarkup:
                 InlineKeyboardButton(text="Рассылка", callback_data="mailing"),
                 #  InlineKeyboardButton(text="Recovery latest", callback_data="recovery_latest"),
                 # InlineKeyboardButton(text="Recovery list", callback_data="recovery_list"),
+
+                # InlineKeyboardButton(text="Просмотр/Изменение товара", callback_data="edit_product"),
                 InlineKeyboardButton(text="Upload to Excel", callback_data="upload_xlsx"),
                 InlineKeyboardButton(text="Get log file", callback_data="get_log"),
-                )
+                InlineKeyboardButton(text="Просмотр/Изменение товара", callback_data="view_product"))
 
     builder.adjust(2)
 
@@ -124,5 +126,13 @@ def get_upload_kb():
     for table_name in tables:
         builder.row(InlineKeyboardButton(text=table_name, callback_data=f"export_{table_name}"))
     builder.row(InlineKeyboardButton(text="🔙 Назад", callback_data="export_back"))
+    builder.adjust(2)
+    return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
+
+
+def get_product_change_kb(product_id: int, article: int):
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=f"Изменить №{article}", callback_data=f"change_{product_id}"),
+                InlineKeyboardButton(text=f"Удалить №{article}", callback_data=f"delete_{product_id}"))
     builder.adjust(2)
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)

@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session, DeclarativeBase, sessionmaker
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy import MetaData, Table
 from sqlalchemy.engine import Engine
+from sqlalchemy.inspection import inspect
 
 from data.config import DB_URL, ECHO
 from database.models import Base, Costumer, Product, Category, Question, News, Cart, Order, CartItems, AbstractBase, \
@@ -34,7 +35,7 @@ engine = create_engine(DB_URL,
                        poolclass=QueuePool,
                        pool_size=5,  # минимальное количество соединений
                        max_overflow=10,  # максимальное количество соединений
-                       pool_timeout=30,  # таймаут ожидания (сек)
+                       pool_timeout=30,  # тайм-аут ожидания (сек)
                        pool_recycle=1800,  # пересоздавать каждые 30 минут
                        pool_pre_ping=True,  # проверять перед использованием
 
@@ -176,6 +177,12 @@ def get_product_description(session: Session, product_id: int) -> Product:
     """
     product = session.query(Product.name, Product.image,Product.description,
                             Product.characteristics, Product.price).filter(Product.id == product_id).first()
+    return product
+
+
+def get_product_by_article(session: Session, article: str):
+    """Выборка товара по его артиклю"""
+    product = session.query(Product).filter(Product.article == article).first()
     return product
 
 
@@ -656,4 +663,20 @@ def export_data_to_excel(session: Session, table_name: str, file_path: str):
         df[col] = df[col].apply(clean_excel_string)
     # Сохраняем в Excel
     df.to_excel(file_path, index=False)
+
+
+def entity_to_excel(entity):
+    """Выгружает любую сущность из моделей в ексель, но только одну
+    для загрузки нескольких использовать:
+    products = session.query(Product).all()
+    df = pd.DataFrame([orm_to_dict(p) for p in products])
+    df.to_excel("products.xlsx", index=False)
+    """
+    entity_dict = {c.key: getattr(entity, c.key) for c in inspect(entity).mapper.column_attrs}
+    df = pd.DataFrame([entity_dict])
+    for col in df.select_dtypes(include=['datetime64[ns, UTC]']).columns: #Убирает тайм зону из столбцов с датами.
+        df[col] = df[col].dt.tz_localize(None)
+    file_name = f"data/Инфа_{entity_dict.get('article')}.xlsx"
+    df.to_excel(file_name, index=False)
+    return file_name
 
