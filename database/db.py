@@ -624,6 +624,15 @@ def get_product_by_id(session: Session, product_id: int):
         result = session.scalar(stmt)
         return result
 
+
+def delete_product_by_id(session: Session, product_id: int) -> bool:
+    product = session.get(Product, product_id)
+    if not product:
+        return False
+    session.delete(product)
+    session.commit()
+    return True
+
 #********************
 # Analitics
 #********************

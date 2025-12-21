@@ -121,6 +121,7 @@ def get_issued_entity(entity_id, model):
 
 
 def get_upload_kb():
+    """Клавиатура для выбора таблицы для выгрузки"""
     builder = InlineKeyboardBuilder()
     tables = get_all_tables_names()
     for table_name in tables:
@@ -131,8 +132,18 @@ def get_upload_kb():
 
 
 def get_product_change_kb(product_id: int, article: int):
+    """Клавиатура для выбора вариантов работы с товаром"""
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text=f"Изменить №{article}", callback_data=f"change_{product_id}"),
                 InlineKeyboardButton(text=f"Удалить №{article}", callback_data=f"delete_{product_id}"))
+    builder.adjust(2)
+    return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
+
+
+def get_product_delete_kb(product_id: int):
+    """Клавиатура для выбора удаления товара"""
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text=f"❌ Удалить ", callback_data=f"deleteconfirm_{product_id}"),
+                InlineKeyboardButton(text=f"🔙 Отменить ", callback_data=f"deleteback"))
     builder.adjust(2)
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)

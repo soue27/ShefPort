@@ -1,16 +1,12 @@
 import os
 from datetime import datetime
 
-from aiogram import Router, F, Bot
-from aiogram.enums import ParseMode
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import Message, CallbackQuery, FSInputFile
-from aiogram.filters import Command
+from aiogram import Router, F
+from aiogram.types import CallbackQuery, FSInputFile
 from loguru import logger
 from sqlalchemy.orm import Session
 
-from database.db import get_all_tables_names, export_data_to_excel
+from database.db import export_data_to_excel
 from keyboards.admin_kb import get_upload_kb
 
 router = Router(name='admin_analitics')
