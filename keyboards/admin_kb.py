@@ -1,7 +1,7 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from database.db import get_all_categories, session, count_model_records, get_all_tables_names
+from database.db import session, count_model_records, get_all_tables_names
 from database.models import Question, Cart, Order
 from services.search import plural_form
 
@@ -134,7 +134,7 @@ def get_upload_kb():
 def get_product_change_kb(product_id: int, article: int):
     """Клавиатура для выбора вариантов работы с товаром"""
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text=f"Изменить №{article}", callback_data=f"change_{product_id}"),
+    builder.row(InlineKeyboardButton(text=f"Изменить №{article}", callback_data=f"confirmedit_{product_id}"),
                 InlineKeyboardButton(text=f"Удалить №{article}", callback_data=f"delete_{product_id}"))
     builder.adjust(2)
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
@@ -147,3 +147,15 @@ def get_product_delete_kb(product_id: int):
                 InlineKeyboardButton(text=f"🔙 Отменить ", callback_data=f"deleteback"))
     builder.adjust(2)
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
+
+
+def get_edit_product_kb(product_id: int):
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="✏️ Название", callback_data=f"edit_name_{product_id}"),
+                InlineKeyboardButton(text="💰 Цена", callback_data=f"edit_price_{product_id}"),
+                InlineKeyboardButton(text="📦 Остаток", callback_data=f"edit_ostatok_{product_id}"),
+                InlineKeyboardButton(text="📏 Ед. измерения", callback_data=f"edit_unit_{product_id}"),
+                InlineKeyboardButton(text="📝 Описание", callback_data=f"edit_description_{product_id}"),
+                InlineKeyboardButton(text="🖼 Изображение", callback_data=f"edit_image_{product_id}"))
+    builder.adjust(2)
+    return builder.as_markup(on_time_keyboard=True, resize_keyboard=True)

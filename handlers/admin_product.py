@@ -6,10 +6,11 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery, FSInputFile
 from loguru import logger
+from sqlalchemy.util import await_only
 
 from database.db import session, get_product_by_article, entity_to_excel, delete_product_by_id
 from database.models import Product
-from keyboards.admin_kb import get_product_change_kb, get_product_delete_kb
+from keyboards.admin_kb import get_product_change_kb, get_product_delete_kb, get_edit_product_kb
 
 router = Router(name='admin_product')
 
@@ -138,4 +139,9 @@ async def confirm_back_product(callback: CallbackQuery):
         del user_messages[user_id]
     logger.info(f"Отмена удаления товара в confirm_delete_product")
 
+
+@router.callback_query(F.data.startswith("confirmedit_"))
+async def show_edit_product(callback: CallbackQuery, state: FSMContext):
+    product_id = int(callback.data.split("_")[1])
+    await callback.message.edit_text("Выберите, что будем менять", reply_markup=get_edit_product_kb(product_id))
 

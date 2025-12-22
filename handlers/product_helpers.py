@@ -49,7 +49,7 @@ async def send_product_card(message, product, index=None, total=None):
 
 
         # Оптимизация изображения
-        optimized_image = product.image
+        optimized_image = product.image #TODO сделать проверку валидности рисунка
         photo1 = "https://chefport.ru/image/cache/placeholder-270x180.png"
         keyboard = create_product_card_keyboard(product.id, to_order, describe)
 
@@ -81,7 +81,7 @@ async def send_product_card(message, product, index=None, total=None):
     except Exception as e:
         logger.exception(f"Ошибка отправки карточки товара {product.id}: {e}")
         # Аварийный вариант
-        keyboard = create_product_card_keyboard(product.id)
+        keyboard = create_product_card_keyboard(product.id, to_order, describe)
         await message.answer(
             f"<b>{product.name}</b>\n"
             f"💵 <b>Цена: {product.price} руб</b>\n"
@@ -149,6 +149,8 @@ async def start_category_products(message, category_id, session, in_stock: bool)
         in_stock: Тру если показывается только товар в наличии
     """
     # Получаем товары категории
+    user = message.from_user
+    chat = message.chat
     try:
         products = get_products_by_category(session, category_id, in_stock)
         logger.info(
