@@ -11,6 +11,7 @@ from keyboards.catalog_control import create_control_keyboard
 
 from loguru import logger
 
+PLACEHOLDERIMAGE = "https://disk.yandex.ru/i/686NlpUWze1FLw"
 
 async def send_product_card(message, product, index=None, total=None):
     """Отправляет карточку товара в чат
@@ -49,8 +50,8 @@ async def send_product_card(message, product, index=None, total=None):
 
 
         # Оптимизация изображения
-        optimized_image = product.image #TODO сделать проверку валидности рисунка
-        photo1 = "https://chefport.ru/image/cache/placeholder-270x180.png"
+        optimized_image = product.main_image #TO DO сделать проверку валидности рисунка
+        photo1 = PLACEHOLDERIMAGE
         keyboard = create_product_card_keyboard(product.id, to_order, describe)
 
         # Отправка карточки

@@ -14,22 +14,20 @@ from datetime import datetime
 from typing import Type, Optional, List, Any
 
 import pandas as pd
-from pandas.core.computation.expressions import where
-from sqlalchemy import select, func, Engine, types, update, delete, literal_column, or_
 from aiogram.types import CallbackQuery
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, DeclarativeBase, sessionmaker
-from sqlalchemy.dialects.postgresql import insert
+from loguru import logger
 from sqlalchemy import MetaData, Table
+from sqlalchemy import create_engine
+from sqlalchemy import select, func, update, delete
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.engine import Engine
 from sqlalchemy.inspection import inspect
-
-from data.config import DB_URL, ECHO
-from database.models import Base, Costumer, Product, Category, Question, News, Cart, Order, CartItems, AbstractBase, \
-    OrderItems
+from sqlalchemy.orm import Session, DeclarativeBase
 from sqlalchemy.pool import QueuePool
-from services.search import normalize_text
 
+from data.config import DB_URL
+from database.models import Base, Costumer, Product, Category, Question, News, Cart, CartItems, OrderItems
+from services.search import normalize_text
 
 engine = create_engine(DB_URL,
                        poolclass=QueuePool,
@@ -80,12 +78,12 @@ def save_costumer(session: Session, callback: CallbackQuery, news: bool):
     costumer = session.query(Costumer).filter(Costumer.tg_id == user_id).first()
     if not costumer:
         with session as ses:
-            costumer=Costumer(
+            costumer = Costumer(
                 tg_id=user_id,
                 username=user_data.username,
                 first_name=user_data.first_name,
                 last_name=user_data.last_name,
-                news = news
+                news=news
             )
             ses.add(costumer)
             ses.commit()
@@ -175,7 +173,7 @@ def get_product_description(session: Session, product_id: int) -> Product:
     :param product_id: ID of the product to fetch description for
     :return: Description of the product
     """
-    product = session.query(Product.name, Product.image,Product.description,
+    product = session.query(Product.name, Product.image, Product.description,
                             Product.characteristics, Product.price).filter(Product.id == product_id).first()
     return product
 
@@ -298,7 +296,7 @@ def count_model_records(session, model: Type[DeclarativeBase], filters: Optional
     """
     stmt = select(func.count()).select_from(model)
 
-        # Применяем фильтры если они переданы
+    # Применяем фильтры если они переданы
     if filters:
         for filter_condition in filters:
             stmt = stmt.where(filter_condition)
@@ -358,11 +356,12 @@ def save_news(session: Session, data: dict):
     else:
         photo = None
     with session as ses:
-        news = News(title=title, post=post, url=url, image_url=photo, media_type = type1)
+        news = News(title=title, post=post, url=url, image_url=photo, media_type=type1)
         ses.add(news)
         ses.commit()
 
-#regoin
+
+# regoin
 
 def set_active_entity(session: Session, tg_id: int, model):
     """Установка новой активной корзины"""
@@ -372,7 +371,7 @@ def set_active_entity(session: Session, tg_id: int, model):
         name = f"Корзина от {today}"
     else:
         name = f"Заказ от {today}"
-    model=model
+    model = model
     with session as ses:
         entity = model(user_id=user_id, name=name, is_active=True)
         ses.add(entity)
@@ -382,7 +381,8 @@ def set_active_entity(session: Session, tg_id: int, model):
     return cart_id
 
 
-def save_product_to_entity(session: Session, entity_id: int, product_id: int, quantity: float, unit_price: float, model):
+def save_product_to_entity(session: Session, entity_id: int, product_id: int, quantity: float, unit_price: float,
+                           model):
     # Проверяем существующий товар в корзине CartItems, OrderItems
     if model == CartItems:
         existing_item = session.query(CartItems).filter(
@@ -397,7 +397,7 @@ def save_product_to_entity(session: Session, entity_id: int, product_id: int, qu
 
     if existing_item:
         existing_item.quantity += quantity
-    elif model == CartItems: # Tсли товара нет, то создаем новую запись
+    elif model == CartItems:  # Tсли товара нет, то создаем новую запись
         item = model(
             cart_id=entity_id,
             product_id=product_id,
@@ -502,9 +502,9 @@ def set_entity_for_issue(session: Session, entity_id, model):
     """Устанавливает признак готовности Cart, Order для выдачи товара"""
     stmt = (
         update(model)
-            .where(model.id == entity_id)
-            .values(is_done=False, is_issued=True, is_done_at=datetime.now())
-        ).returning(model)
+        .where(model.id == entity_id)
+        .values(is_done=False, is_issued=True, is_done_at=datetime.now())
+    ).returning(model)
     result = session.execute(stmt)
     updated_entity = result.scalar_one_or_none()
     session.commit()
@@ -528,87 +528,80 @@ def set_entity_close(session: Session, id, model):
 
 def get_entity_by_user_id(session: Session, user_id: int, model):
     """поолучение всех неактивных корзин по айди пользователя"""
-    stmt = select(model).where(model.user_id==user_id,
-                               model.is_active==False).order_by(model.id)
+    stmt = select(model).where(model.user_id == user_id,
+                               model.is_active == False).order_by(model.id)
     result = session.scalars(stmt).all()
     return result
 
 
-
 ##########################################
-#раздел работы с корзиной покупок и заказов
+# раздел работы с корзиной покупок и заказов
 ##########################################
-#endregoin
+# endregoin
 
 
 def load_data(file_name: str, engine: Engine) -> int:
     """Загрузка новых товаров обновление товаров в БД"""
     try:
+        logger.info(f"Начало загрузки файла {file_name}")
+
+        # 1. Чтение файла
         df = pd.read_excel(file_name, dtype={"article": str})
         df = df.drop(columns=["id"], errors="ignore")
 
-        dtype_config = {
-            "name" : types.String(500),
-            "url" : types.String(500),
-            "image" : types.String(500),
-            "price" : types.Float(),
-            "unit" : types.String(50),
-            "product_id" : types.String(100),
-            "article" : types.String(100),
-            "description" : types.Text,
-            'full_description' : types.Text,
-            "characteristics" : types.Text,
-            "main_image" : types.String(500),
-            "additional_images" : types.Text,
-            "weight" : types.String(100),
-            "calories" : types.String(100),
-            "nutrition_facts" : types.Text,
-            "category_id" : types.Integer(),
-            "ostatok" :types.Float()
-        }
+        # 2. NaN -> None
+        df = df.where(pd.notnull(df), None)
+
+        if df.empty:
+            logger.exception(f"Файл %s пуст {file_name}")
+            return 0
+
         metadata = MetaData()
-        products = Table('products', metadata, autoload_with=engine)
+        products = Table("products", metadata, autoload_with=engine)
 
-        rows = df.to_dict(orient='records')
-        stmt = insert(products).values(rows)
-        update_columns = {
-            c.name: stmt.excluded[c.name]
-            for c in products.columns
-            if c.name not in ("id", 'article', "created_at")
-        }
+        # 3. Получаем существующие артикли
+        with engine.begin() as conn:
+            existing_articles = {
+                row[0]
+                for row in conn.execute(
+                    select(products.c.article)
+                )
+                if row[0] is not None
+            }
 
-        diff_condition = or_(
-            *[
-                products.c[c].is_distinct_from(stmt.excluded[c])
-                for c in update_columns.keys()
-            ]
-        )
+        # 4. Делим данные
+        is_duplicate = df["article"].isin(existing_articles)
 
-        stmt = stmt.on_conflict_do_update(
-            index_elements=["article"],
-            set_=update_columns,
-            where=diff_condition
-        ).returning(products.c.id, literal_column("xmax"))
+        df_duplicates = df[is_duplicate]
+        df_new = df[~is_duplicate]
+
+        # 5. Логируем дубли
+        if not df_duplicates.empty:
+            logger.exception(f"Найдено {len(df_duplicates)} дублей по article")
+            for _, row in df_duplicates.iterrows():
+                logger.exception(f"Дубль {row.get("article")} {row.get("name")} {row.get("price")}")
+
+        # 6. Вставка новых
+        if df_new.empty:
+            logger.info("Новых товаров для вставки нет")
+            return 0
+
+        rows = df_new.to_dict(orient="records")
 
         with engine.begin() as conn:
-            result = conn.execute(stmt)
-            rows_result = result.fetchall()
+            conn.execute(insert(products), rows)
 
-        return len(rows)
+        logger.info(f"Загружено {len(df_new)} новых товаров, пропущено {len(df_duplicates)} дублей")
 
-        return len(rows)
-        # df.to_sql(name='products', con=engine, if_exists='append', index=False, dtype=dtype_config)
-        # result = df.shape[0]
-        # os.remove(file_name)
-        # del df
-        # return result
+        return len(df_new)
+
     except Exception as e:
-        print(f"Ошибка загрузки: {e}")
+        logger.exception(f"Ошибка загрузки файла {file_name}")
         return 0
 
     finally:
-        os.remove(file_name)
-        del df
+        if os.path.exists(file_name):
+            os.remove(file_name)
 
 
 def get_product_by_id(session: Session, product_id: int):
@@ -633,9 +626,10 @@ def delete_product_by_id(session: Session, product_id: int) -> bool:
     session.commit()
     return True
 
-#********************
+
+# ********************
 # Analitics
-#********************
+# ********************
 
 def get_all_tables_names():
     """Динамическое получение всех моделей БД для формирования выгрузок"""
@@ -683,9 +677,31 @@ def entity_to_excel(entity):
     """
     entity_dict = {c.key: getattr(entity, c.key) for c in inspect(entity).mapper.column_attrs}
     df = pd.DataFrame([entity_dict])
-    for col in df.select_dtypes(include=['datetime64[ns, UTC]']).columns: #Убирает тайм зону из столбцов с датами.
+    for col in df.select_dtypes(include=['datetime64[ns, UTC]']).columns:  # Убирает тайм зону из столбцов с датами.
         df[col] = df[col].dt.tz_localize(None)
     file_name = f"data/Инфа_{entity_dict.get('article')}.xlsx"
     df.to_excel(file_name, index=False)
     return file_name
 
+
+def update_prooduct_field(session: Session, product_id, field, value):
+    product = session.get(Product, product_id)
+    if not product:
+        raise ValueError("Товар не найден")
+    print(product_id, field, value)
+    match field:
+        case "name":
+            product.name = value
+        case "price":
+            product.price = float(value)
+        case "ostatok":
+            product.ostatok = float(value)
+        case "unit":
+            product.unit = value
+        case "description":
+            product.description = value
+        case "image":
+            product.main_image = value
+        case _:
+            raise ValueError("Неизвестное поле")
+    session.commit()

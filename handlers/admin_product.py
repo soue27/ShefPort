@@ -1,25 +1,27 @@
 import os
 
-
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery, FSInputFile
 from loguru import logger
-from sqlalchemy.util import await_only
 
-from database.db import session, get_product_by_article, entity_to_excel, delete_product_by_id
+from database.db import session, get_product_by_article, entity_to_excel, delete_product_by_id, update_prooduct_field
 from database.models import Product
 from keyboards.admin_kb import get_product_change_kb, get_product_delete_kb, get_edit_product_kb
 
 router = Router(name='admin_product')
 
-
 user_messages = {}
 
 
-class ViewProduct(StatesGroup):
+class ViewProduct(StatesGroup): #Стейт для ввода артикля товара
     article = State()
+
+
+class EditProduct(StatesGroup): #Стейт для редактирования товара
+    choose_field = State()
+    enter_value = State()
 
 
 @router.callback_query(F.data == "view_product")
@@ -59,12 +61,12 @@ async def view_product(message: Message, state: FSMContext):
         msg = await message.answer_document(FSInputFile(file_name))
         user_messages[message.from_user.id].append(msg.message_id)
         text = (f"Артикль: <b>{tovar.article}</b>\n"
-                             f"Название: <b>{tovar.name}</b>\n"
-                             f"Цена: <b>{tovar.price}</b>\n"
-                             f"Единицы: <b>{tovar.unit}</b>\n"
-                             f"Остаток: <b>{tovar.ostatok}</b>\n"
-                             f"Описание: <b>{tovar.description}</b>\n"
-                             f"Фото: <b>{tovar.main_image}</b>\n")
+                f"Название: <b>{tovar.name}</b>\n"
+                f"Цена: <b>{tovar.price}</b>\n"
+                f"Единицы: <b>{tovar.unit}</b>\n"
+                f"Остаток: <b>{tovar.ostatok}</b>\n"
+                f"Описание: <b>{tovar.description}</b>\n"
+                f"Фото: <b>{tovar.main_image}</b>\n")
         msg = await message.answer(text=text, reply_markup=get_product_change_kb(tovar.id, tovar.article))
         user_messages[message.from_user.id].append(msg.message_id)
         print(tovar.id)
@@ -94,9 +96,8 @@ async def delete_product(callback: CallbackQuery):
         await callback.message.answer("Возникла ошибка, попробуйте еще раз")
         return
     msg = await callback.message.answer(f"Подтвердите удаление товара '{product.name}', артикул №{product.article}",
-                                  reply_markup=get_product_delete_kb(product_id))
+                                        reply_markup=get_product_delete_kb(product_id))
     user_messages[callback.from_user.id].append(msg.message_id)
-
 
 
 @router.callback_query(F.data.startswith("deleteconfirm_"))
@@ -141,7 +142,58 @@ async def confirm_back_product(callback: CallbackQuery):
 
 
 @router.callback_query(F.data.startswith("confirmedit_"))
-async def show_edit_product(callback: CallbackQuery, state: FSMContext):
+async def show_edit_product(callback: CallbackQuery):
     product_id = int(callback.data.split("_")[1])
     await callback.message.edit_text("Выберите, что будем менять", reply_markup=get_edit_product_kb(product_id))
+
+
+@router.callback_query(F.data.startswith("edit_"))
+async def edit_product(callback: CallbackQuery, state: FSMContext):
+    _, field, product_id = callback.data.split("_")
+    product_id = int(product_id)
+    await state.update_data(field=field, product_id=product_id)
+    if field == "image":
+        await callback.message.answer("Загрузите новую картинку для товара")
+    else:
+        await callback.message.answer(f"Введите новое значение для поля: <b>{field}</b>")
+    await state.set_state(EditProduct.enter_value)
+
+
+@router.message(EditProduct.enter_value, F.photo)
+async def update_image(message: Message, state: FSMContext):
+    print("грузим фото")
+    data = await state.get_data()
+    product_id = data["product_id"]
+    field = data["field"]
+    if data["field"] != "image":
+        return
+    value = message.photo[-1].file_id
+    print(data)
+    try:
+        update_prooduct_field(session, product_id, field, value)
+        await message.answer("🖼 Изображение обновлено")
+    except Exception as e:
+        await message.answer(f"Error {e}")
+        return
+    await state.clear()
+
+
+@router.message(EditProduct.enter_value)
+async def enter_new_value(message: Message, state: FSMContext):
+    print("Грузим текст")
+    data = await state.get_data()
+    product_id = data["product_id"]
+    field = data["field"]
+    value = message.text
+    print(data)
+    try:
+        update_prooduct_field(session, product_id, field, value)
+        await message.answer("✅ Товар обновлен")
+    except Exception as e:
+        await message.answer(f"Error {e}")
+        return
+    await state.clear()
+
+
+
 

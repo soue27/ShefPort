@@ -8,35 +8,41 @@ from services.search import plural_form
 
 def main_kb() -> InlineKeyboardMarkup:
     """Клавиатура для администратора"""
-    count_cart = count_model_records(session, Cart, filters=[Cart.is_done == True])# подсчет количества Незавершенных заказы
+    count_cart = count_model_records(session, Cart,
+                                     filters=[Cart.is_done == True])  # подсчет количества Незавершенных заказы
     count_cart_issued = count_model_records(session, Cart, filters=[Cart.is_issued == True])
     count_order = count_model_records(session, Order, filters=[Order.is_done == True])
     count_order_issued = count_model_records(session, Order, filters=[Order.is_issued == True])
     text_cart = plural_form(count_cart, ("корзина", "корзины", "корзин"))
     text_order = plural_form(count_order, ("заказ", "заказа", "заказов"))
-    count2 = count_model_records(session, Question, filters=[Question.is_answered == False]) # подсчет количества сообщений в работе
+    count2 = count_model_records(session, Question,
+                                 filters=[Question.is_answered == False])  # подсчет количества сообщений в работе
     text2 = plural_form(count2, ("сообщение", "сообщения", "сообщений"))
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text=f"{count_cart} - {text_cart.capitalize()} для сбора", callback_data="done_carts"),
-                InlineKeyboardButton(text=f"{count_cart_issued} - {text_cart.capitalize()} для выдачи" , callback_data="issued_carts"),
-                InlineKeyboardButton(text=f"{count_order} - {text_order.capitalize()} для сбора", callback_data="done_orders"),
-                InlineKeyboardButton(text=f"{count_order_issued} - {text_order.capitalize()} для выдачи" , callback_data="issued_orders"),
-                InlineKeyboardButton(text=f"{count2} - {text2.capitalize()}", callback_data="check_questions"),
-                InlineKeyboardButton(text="Рассылка", callback_data="mailing"),
-                #  InlineKeyboardButton(text="Recovery latest", callback_data="recovery_latest"),
-                # InlineKeyboardButton(text="Recovery list", callback_data="recovery_list"),
+    builder.row(
+        InlineKeyboardButton(text=f"{count_cart} - {text_cart.capitalize()} для сбора",
+                             callback_data="done_carts"),
+        InlineKeyboardButton(text=f"{count_cart_issued} - {text_cart.capitalize()} для выдачи",
+                             callback_data="issued_carts"),
+        InlineKeyboardButton(text=f"{count_order} - {text_order.capitalize()} для сбора", callback_data="done_orders"),
+        InlineKeyboardButton(text=f"{count_order_issued} - {text_order.capitalize()} для выдачи",
+                             callback_data="issued_orders"),
+        InlineKeyboardButton(text=f"{count2} - {text2.capitalize()}", callback_data="check_questions"),
+        InlineKeyboardButton(text="Рассылка", callback_data="mailing"),
+        #  InlineKeyboardButton(text="Recovery latest", callback_data="recovery_latest"),
+        # InlineKeyboardButton(text="Recovery list", callback_data="recovery_list"),
 
-                # InlineKeyboardButton(text="Просмотр/Изменение товара", callback_data="edit_product"),
-                InlineKeyboardButton(text="Upload to Excel", callback_data="upload_xlsx"),
-                InlineKeyboardButton(text="Get log file", callback_data="get_log"),
-                InlineKeyboardButton(text="Просмотр/Изменение товара", callback_data="view_product"))
+        # InlineKeyboardButton(text="Просмотр/Изменение товара", callback_data="edit_product"),
+        InlineKeyboardButton(text="Upload to Excel", callback_data="upload_xlsx"),
+        InlineKeyboardButton(text="Get log file", callback_data="get_log"),
+        InlineKeyboardButton(text="Просмотр/Изменение товара", callback_data="view_product"))
 
     builder.adjust(2)
 
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
 
 
-def check_questions(count: int, text: str, text2:str):
+def check_questions(count: int, text: str, text2: str):
     """Клавиатура для проверки сообщений"""
 
     builder = InlineKeyboardBuilder()
@@ -45,8 +51,15 @@ def check_questions(count: int, text: str, text2:str):
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
 
 
-def get_questions(questions):
-    """"""
+def get_questions(questions: list) -> InlineKeyboardMarkup:
+    """Create a keyboard with a list of questions.
+    
+    Args:
+        questions (list): List of question objects to display
+        
+    Returns:
+        InlineKeyboardMarkup: Keyboard with question buttons
+    """
     builder = InlineKeyboardBuilder()
     for question in questions:
         builder.button(text=f"№{question.id}-{question.text[:20]}", callback_data=f"question_{question.id}")
@@ -55,21 +68,40 @@ def get_questions(questions):
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
 
 
-def mailing_kb():
+def mailing_kb() -> InlineKeyboardMarkup:
+    """Create a keyboard for selecting mailing type.
+    
+    Returns:
+        InlineKeyboardMarkup: Keyboard with mailing type options
+    """
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Пост с текстом", callback_data="post_text"),
                 InlineKeyboardButton(text=f"Пост с фото/видео", callback_data="post_image"))
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
 
 
-def confirm_kb():
+def confirm_kb() -> InlineKeyboardMarkup:
+    """Create a confirmation keyboard for mailing actions.
+    
+    Returns:
+        InlineKeyboardMarkup: Keyboard with confirmation options
+    """
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="Отправить", callback_data="mailing_confirm"),
                 InlineKeyboardButton(text="Изменить", callback_data="mailing_cancel"))
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
 
 
-def get_entity_kb(entities, model):
+def get_entity_kb(entities: list, model: type) -> InlineKeyboardMarkup:
+    """Create a keyboard for listing entities (carts or orders).
+    
+    Args:
+        entities (list): List of entity objects to display
+        model (type): The model class (Cart or Order) to determine button text
+        
+    Returns:
+        InlineKeyboardMarkup: Keyboard with entity buttons
+    """
     builder = InlineKeyboardBuilder()
     if model == Cart:
         text = "Корзина"
@@ -83,7 +115,16 @@ def get_entity_kb(entities, model):
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
 
 
-def get_admin_confirmentity_kb(entity_id, model):
+def get_admin_confirmentity_kb(entity_id: int, model: str) -> InlineKeyboardMarkup:
+    """Create a confirmation keyboard for admin actions on entities.
+    
+    Args:
+        entity_id (int): ID of the entity to confirm
+        model (str): Type of entity ("Cart" or "Order")
+        
+    Returns:
+        InlineKeyboardMarkup: Keyboard with confirmation and back buttons
+    """
     builder = InlineKeyboardBuilder()
     if model == "Cart":
         text = "✅ Готов к выдаче"
@@ -96,7 +137,16 @@ def get_admin_confirmentity_kb(entity_id, model):
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
 
 
-def get_close_entity(entity_id, model):
+def get_close_entity(entity_id: int, model: str) -> InlineKeyboardMarkup:
+    """Create a keyboard for closing an entity with notification options.
+    
+    Args:
+        entity_id (int): ID of the entity to close
+        model (str): Type of entity ("Cart" or "Order")
+        
+    Returns:
+        InlineKeyboardMarkup: Keyboard with close options
+    """
     builder = InlineKeyboardBuilder()
     if model == "Cart":
         call = "Cart"
@@ -109,7 +159,14 @@ def get_close_entity(entity_id, model):
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
 
 
-def get_issued_entity(entity_id, model):
+def get_issued_entity(entity_id: int, model: str) -> InlineKeyboardMarkup:
+    """Create a confirmation keyboard for marking an order/cart as issued to the client.
+    Args:
+        entity_id (int): The ID of the cart or order
+        model (str): The type of entity ("Cart" or "Order")
+    Returns:
+        InlineKeyboardMarkup: A keyboard with confirmation and back buttons
+    """
     builder = InlineKeyboardBuilder()
     if model == "Cart":
         call = "Cart"
@@ -149,7 +206,15 @@ def get_product_delete_kb(product_id: int):
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
 
 
-def get_edit_product_kb(product_id: int):
+def get_edit_product_kb(product_id: int) -> InlineKeyboardMarkup:
+    """Create a keyboard for editing product details.
+    
+    Args:
+        product_id (int): ID of the product to edit
+        
+    Returns:
+        InlineKeyboardMarkup: Keyboard with product editing options
+    """
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="✏️ Название", callback_data=f"edit_name_{product_id}"),
                 InlineKeyboardButton(text="💰 Цена", callback_data=f"edit_price_{product_id}"),

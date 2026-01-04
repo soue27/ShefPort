@@ -1,11 +1,8 @@
-
-from aiogram.types import Message, CallbackQuery
 from datetime import datetime, timezone
 
 from aiogram import BaseMiddleware
+from aiogram.types import Message, CallbackQuery
 from sqlalchemy.orm import Session
-
-# from models import User, UserActivity
 
 from database.db import get_costumer_id
 from database.models import CostumerActivity
@@ -42,11 +39,12 @@ class UserActivityMiddleware(BaseMiddleware):
         # print("PAYLOAD:", payload)
         # print("===========================")
 
-        user_id = get_costumer_id(session, user_id)
+        # user_id = get_costumer_id(session, user_id)
+        # if user_id is None:
+        #     user_id = 112233
 
         # Запись как есть
         activity = CostumerActivity(
-            user_id=user_id,
             chat_id=chat_id,
             event_type=event_type,
             action=payload,
@@ -61,4 +59,3 @@ class UserActivityMiddleware(BaseMiddleware):
         session.commit()
 
         return await handler(event, data)
-

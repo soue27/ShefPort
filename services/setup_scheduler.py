@@ -17,7 +17,7 @@ async def start_sheduler(bot: Bot):
         args=(bot,),  # Pass the bot instance to the function
         trigger="cron",
         hour=21,
-        minute=0
+        minute=00
         )
     logger.info("Start logging")
     #Резервное копирование базы данных ежедневно в 21.10

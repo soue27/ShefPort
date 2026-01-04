@@ -1,12 +1,8 @@
-import asyncio
-
 from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from loguru import logger
-from sqlalchemy.orm.session import Session
 
 from data.config import DB_BACKUP_DIR
-from database.db import session
 from services.backup_db import PostrgresBackup
 from services.yandex_db import YandexDiskBackup
 
@@ -21,4 +17,3 @@ async def recovery_latest(callback: CallbackQuery, ya: YandexDiskBackup, pg: Pos
     pg.restore_data_backup(backup_file)
     logger.info(f"{callback.from_user.id} восстановил последний бэкап {latest}")
     await callback.message.answer(f"Восстановлен последний бэкап {latest}")
-

@@ -81,7 +81,6 @@ class Costumer(AbstractBase):
     carts = relationship("Cart", back_populates="user")
     questions = relationship("Question", back_populates="user")
     orders = relationship("Order", back_populates="user")
-    activities = relationship("CostumerActivity", back_populates="user", cascade="all, delete-orphan")
 
 
     def __repr__(self):
@@ -90,7 +89,6 @@ class Costumer(AbstractBase):
 
 class CostumerActivity(AbstractBase):
     __tablename__ = "costumer_activity"
-    user_id = Column(BigInteger, ForeignKey("costumers.id"), nullable=False, index=True)
     chat_id = Column(BigInteger)
     event_type = Column(String(32))
     action = Column(String(255))
@@ -101,8 +99,6 @@ class CostumerActivity(AbstractBase):
     month = Column(Integer, index=True)
     year = Column(Integer, index=True)
 
-    # Связь обратно к пользователю
-    user = relationship("Costumer", back_populates="activities")
 
 # Define CartItems before Cart to avoid forward reference issues
 class CartItems(AbstractBase):
