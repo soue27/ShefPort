@@ -22,7 +22,6 @@ router = Router(name='catalog_router')
 async def handle_continue_catalog(callback: CallbackQuery):
     """Обработчик продолжения просмотра каталога"""
     _, _, category_id, offset, in_stock = callback.data.split("_")
-    print(in_stock)
     in_stock = bool(in_stock)
     try:
         category_id = int(category_id)

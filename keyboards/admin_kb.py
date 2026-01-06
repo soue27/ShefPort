@@ -29,12 +29,9 @@ def main_kb() -> InlineKeyboardMarkup:
                              callback_data="issued_orders"),
         InlineKeyboardButton(text=f"{count2} - {text2.capitalize()}", callback_data="check_questions"),
         InlineKeyboardButton(text="Рассылка", callback_data="mailing"),
-        #  InlineKeyboardButton(text="Recovery latest", callback_data="recovery_latest"),
-        # InlineKeyboardButton(text="Recovery list", callback_data="recovery_list"),
-
-        # InlineKeyboardButton(text="Просмотр/Изменение товара", callback_data="edit_product"),
         InlineKeyboardButton(text="Upload to Excel", callback_data="upload_xlsx"),
         InlineKeyboardButton(text="Get log file", callback_data="get_log"),
+        InlineKeyboardButton(text="Посмотреть админов", callback_data="view_admins"),
         InlineKeyboardButton(text="Просмотр/Изменение товара", callback_data="view_product"))
 
     builder.adjust(2)
@@ -223,4 +220,12 @@ def get_edit_product_kb(product_id: int) -> InlineKeyboardMarkup:
                 InlineKeyboardButton(text="📝 Описание", callback_data=f"edit_description_{product_id}"),
                 InlineKeyboardButton(text="🖼 Изображение", callback_data=f"edit_image_{product_id}"))
     builder.adjust(2)
-    return builder.as_markup(on_time_keyboard=True, resize_keyboard=True)
+    return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)
+
+
+def get_set_admins() -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="Удалить из админов", callback_data="deleteadmin"),
+                InlineKeyboardButton(text="Добавить админа", callback_data="addadmin"))
+    builder.adjust(2)
+    return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)

@@ -320,6 +320,15 @@ def get_all_admin(session: Session):
     return result
 
 
+def set_admin(session: Session, admin_tg_id: int, to_delete: bool):
+    admin = session.query(Costumer).filter(Costumer.tg_id == admin_tg_id).one_or_none()
+    if to_delete:
+        admin.is_admin = False
+    else:
+        admin.is_admin = True
+    session.commit()
+
+
 def save_answer(session: Session, question_id, answer_text) -> bool:
     question = session.execute(select(Question).where(Question.id == question_id))
     question = question.scalar_one_or_none()
