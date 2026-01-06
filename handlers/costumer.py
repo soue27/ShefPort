@@ -67,7 +67,6 @@ async def show_product_bycategory(callback: types.CallbackQuery, state: FSMConte
         )
         return
     my_data = await state.get_data()
-    print(my_data)
     in_stock = my_data['in_stock']
     await start_category_products(callback.message, category_id, session, in_stock=in_stock)
     await callback.answer()

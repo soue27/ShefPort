@@ -6,7 +6,7 @@ This module contains functions for creating keyboard layouts for catalog navigat
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 
-def create_control_keyboard(category_id: int, current_offset: int, total_products: int, batch_size: int = 5):
+def create_control_keyboard(category_id: int, current_offset: int, total_products: int, batch_size: int = 5, in_stock: bool = False):
     """
     Создает клавиатуру управления просмотром товаров
     Args:
@@ -14,6 +14,7 @@ def create_control_keyboard(category_id: int, current_offset: int, total_product
         current_offset: текущая позиция в списке товаров
         total_products: общее количество товаров
         batch_size: размер порции товаров
+        in_stock
     Returns:
         InlineKeyboardBuilder с кнопками управления
     """
@@ -25,7 +26,7 @@ def create_control_keyboard(category_id: int, current_offset: int, total_product
         # Основное продолжение
         builder.button(
             text=f"➡️ Следующие {batch_size} товаров",
-            callback_data=f"catalog_continue_{category_id}_{current_offset + batch_size}"
+            callback_data=f"catalog_continue_{category_id}_{current_offset + batch_size}_{in_stock}"
         )
 
         # Дополнительные опции

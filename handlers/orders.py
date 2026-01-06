@@ -10,7 +10,6 @@ from loguru import logger
 
 from database.db import (
     session,
-    Order,
     get_product_by_id,
     get_active_entity,
     set_active_entity,
@@ -27,7 +26,7 @@ from database.db import (
     get_entity_by_user_id,
     get_all_categories,
 )
-from database.models import OrderItems, Product
+from database.models import OrderItems, Product, Order
 from keyboards.carts_kb import (
     item_action_kb,
     cart_main_kb,

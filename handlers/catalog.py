@@ -21,7 +21,9 @@ router = Router(name='catalog_router')
 @router.callback_query(F.data.startswith("catalog_continue_"))
 async def handle_continue_catalog(callback: CallbackQuery):
     """Обработчик продолжения просмотра каталога"""
-    _, _, category_id, offset = callback.data.split("_")
+    _, _, category_id, offset, in_stock = callback.data.split("_")
+    print(in_stock)
+    in_stock = bool(in_stock)
     try:
         category_id = int(category_id)
         offset = int(offset)
@@ -36,7 +38,7 @@ async def handle_continue_catalog(callback: CallbackQuery):
 
     # Получаем товары и показываем следующую порцию
     try:
-        products = get_products_by_category(session, category_id)
+        products = get_products_by_category(session, category_id, in_stock)
         logger.info(
             f"'catalog.handle_continue_catalo: пользователь {callback.from_user.id} получил данные 'get_products_by_category' "
         )
@@ -46,7 +48,7 @@ async def handle_continue_catalog(callback: CallbackQuery):
             f"  в 'catalog.handle_continue_catalog' выполнен неуспешно: {e}"
         )
         return
-    await send_products_batch(callback.message, products, category_id, offset)
+    await send_products_batch(callback.message, products, category_id, in_stock, offset)
 
     await callback.answer()
 

@@ -5,6 +5,8 @@ This module contains helper functions for product handling.
 """
 import asyncio
 
+import requests
+
 from database.db import get_products_by_category
 from keyboards.product_cards import create_product_card_keyboard
 from keyboards.catalog_control import create_control_keyboard
@@ -49,14 +51,26 @@ async def send_product_card(message, product, index=None, total=None):
 
 
 
-        # Оптимизация изображения
-        optimized_image = product.main_image #TO DO сделать проверку валидности рисунка
-        photo1 = PLACEHOLDERIMAGE
+        # Проверка валидности картинки товара:
+        if not product.main_image: #В БД нет кратинки - используем плейсхолдер
+            optimized_image = PLACEHOLDERIMAGE
+        elif product.main_image.startswith("http"): #Картинка в виде ссылки на изображение
+            try:
+                response = requests.head(product.main_image, allow_redirects=True)
+                if response.status_code == 200:
+                    optimized_image = product.main_image
+            except Exception as e:
+                optimized_image = PLACEHOLDERIMAGE
+                logger.exception(f"Проблема с загрузкой картинки {e} для {product.id}")
+        else: # картинка загружена в бот
+            optimized_image = product.main_image
+        # optimized_image = product.main_image #TO DO сделать проверку валидности рисунка
+        # photo1 = PLACEHOLDERIMAGE
+
         keyboard = create_product_card_keyboard(product.id, to_order, describe)
 
         # Отправка карточки
-        if optimized_image:
-            await message.answer_photo(
+        await message.answer_photo(
                 photo=optimized_image,
                 caption=f"<b>{product.name}</b> {progress_text}\n\n"
                         f"📝 {description_preview}\n"
@@ -66,18 +80,18 @@ async def send_product_card(message, product, index=None, total=None):
                 reply_markup=keyboard.as_markup(),
                 disable_notification=True
             )
-        else:
-            # Резервный вариант без изображения
-            await message.answer_photo(
-                photo=photo1,
-                caption=f"<b>{product.name}</b> {progress_text}\n\n"
-                            f"📝 {description_preview}\n"
-                            f"💵 <b>Цена: {product.price} руб</b>\n"
-                            f"📦 <b>{output}</b>",
-                parse_mode="HTML",
-                reply_markup=keyboard.as_markup(),
-                disable_notification=True
-                )
+        # else:
+        #     # Резервный вариант без изображения
+        #     await message.answer_photo(
+        #         photo=PLACEHOLDERIMAGE,
+        #         caption=f"<b>{product.name}</b> {progress_text}\n\n"
+        #                     f"📝 {description_preview}\n"
+        #                     f"💵 <b>Цена: {product.price} руб</b>\n"
+        #                     f"📦 <b>{output}</b>",
+        #         parse_mode="HTML",
+        #         reply_markup=keyboard.as_markup(),
+        #         disable_notification=True
+        #         )
 
     except Exception as e:
         logger.exception(f"Ошибка отправки карточки товара {product.id}: {e}")
@@ -93,7 +107,7 @@ async def send_product_card(message, product, index=None, total=None):
         )
 
 
-async def send_products_batch(message, products, category_id, offset=0, batch_size=5):
+async def send_products_batch(message, products, category_id, in_stock, offset=0, batch_size=5):
     """
     Отправляет порцию товаров с контролем продолжения
     Args:
@@ -102,6 +116,7 @@ async def send_products_batch(message, products, category_id, offset=0, batch_si
         category_id: ID текущей категории
         offset: Смещение для текущей порции
         batch_size: Размер порции товаров
+        in_stock
     """
     # Текущая порция товаров
     current_batch = products[offset:offset + batch_size]
@@ -117,15 +132,15 @@ async def send_products_batch(message, products, category_id, offset=0, batch_si
             await asyncio.sleep(0.3)
 
     # Отправка контроллера навигации
-    await send_control_message(message, category_id, offset, total_products, batch_size)
+    await send_control_message(message, category_id, offset, total_products, batch_size, in_stock)
 
 
-async def send_control_message(message, category_id, current_offset, total_products, batch_size=5):
+async def send_control_message(message, category_id, current_offset, total_products, batch_size=5, in_stock:bool = False):
     """
     Отправляет сообщение с управлением просмотром
     """
     control_keyboard = create_control_keyboard(
-        category_id, current_offset, total_products, batch_size
+        category_id, current_offset, total_products, batch_size, in_stock
     )
 
     progress_text = (
@@ -177,4 +192,4 @@ async def start_category_products(message, category_id, session, in_stock: bool)
     )
 
     # Запускаем показ первой порции
-    await send_products_batch(message, products, category_id, offset=0)
+    await send_products_batch(message, products, category_id, in_stock, offset=0)
