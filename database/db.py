@@ -16,7 +16,7 @@ from typing import Type, Optional, List, Any
 import pandas as pd
 from aiogram.types import CallbackQuery
 from loguru import logger
-from sqlalchemy import MetaData, Table
+from sqlalchemy import MetaData, Table, case
 from sqlalchemy import create_engine
 from sqlalchemy import select, func, update, delete
 from sqlalchemy.dialects.postgresql import insert
@@ -24,6 +24,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import Session, DeclarativeBase
 from sqlalchemy.pool import QueuePool
+from sqlalchemy.util import ellipses_string
 
 from data.config import DB_URL
 from database.models import Base, Costumer, Product, Category, Question, News, Cart, CartItems, OrderItems
@@ -77,21 +78,18 @@ def save_costumer(session: Session, callback: CallbackQuery, news: bool):
     user_id = user_data.id
     costumer = session.query(Costumer).filter(Costumer.tg_id == user_id).first()
     if not costumer:
-        with session as ses:
-            costumer = Costumer(
-                tg_id=user_id,
-                username=user_data.username,
-                first_name=user_data.first_name,
-                last_name=user_data.last_name,
-                news=news
+        costumer = Costumer(
+            tg_id=user_id,
+            username=user_data.username,
+            first_name=user_data.first_name,
+            last_name=user_data.last_name,
+            news=news
             )
-            ses.add(costumer)
-            ses.commit()
+        session.add(costumer)
     else:
-        with session as ses:
-            costumer.news = news
-            costumer.updated_at = datetime.now()
-            ses.commit()
+        costumer.news = news
+        costumer.updated_at = datetime.now()
+    session.commit()
 
 
 def get_random_photo(session: Session):
@@ -114,7 +112,6 @@ def get_all_categories(session: Session, in_stock: bool = False):
     """
     stmt = select(Category.name, Category.id).order_by(Category.id)
     result = session.execute(stmt).all()
-    session.close()
     return result
 
 
@@ -134,9 +131,8 @@ def get_products_by_category(session: Session, category_id: int, in_stock: bool 
     if not in_stock:
         stmt = select(Product).where(Product.category_id == category_id)
     else:
-        stmt = select(Product).where(Product.category_id == category_id).where(Product.ostatok > 0)
+        stmt = select(Product).where(Product.category_id == category_id).where(Product.ostatok > 0.1)
     result = session.scalars(stmt).all()
-    session.close()
     return result
 
 
@@ -158,7 +154,17 @@ def search_products(session: Session, query: str) -> list:
     """
     query_forms = normalize_text(query)
     results = []
-    for product in session.query(Product).all():
+    stmt = (
+        select(Product)
+        .order_by(
+            case(
+                (Product.ostatok > 0.1),
+                else_=0
+            ).desc()
+        )
+    )
+    products = session.scalars(stmt).all()
+    for product in products:
         name_forms = normalize_text(product.name)
         if query_forms & name_forms:  # есть пересечение
             results.append(product)
@@ -233,10 +239,9 @@ def save_question(session: Session, user_id: int, mess_id: int, text: str):
     :param text: Text of the question
     :return: None
     """
-    with session as ses:
-        question = Question(user_id=user_id, questions_id=mess_id, text=text)
-        ses.add(question)
-        ses.commit()
+    question = Question(user_id=user_id, questions_id=mess_id, text=text)
+    session.add(question)
+    session.commit()
 
 
 def get_all_questions(session: Session):
@@ -308,10 +313,10 @@ def count_model_records(session, model: Type[DeclarativeBase], filters: Optional
 def get_all_admin(session: Session):
     """
     Retrieve Telegram IDs of all admin users.
-    
+
     Args:
         session: SQLAlchemy session for database operations
-        
+
     Returns:
         list[int]: List of Telegram user IDs for admin users
     """
@@ -354,8 +359,6 @@ def save_news(session: Session, data: dict):
     :param session: SQLAlchemy session for database operations
     :param data -словарь с данными
     """
-    for key, value in data.items():
-        print(f"{key}: {value}")
     title = data['title']
     post = data['post']
     url = data['url']
@@ -364,10 +367,9 @@ def save_news(session: Session, data: dict):
         photo = data['photo']
     else:
         photo = None
-    with session as ses:
-        news = News(title=title, post=post, url=url, image_url=photo, media_type=type1)
-        ses.add(news)
-        ses.commit()
+    news = News(title=title, post=post, url=url, image_url=photo, media_type=type1)
+    session.add(news)
+    session.commit()
 
 
 # regoin
@@ -381,12 +383,11 @@ def set_active_entity(session: Session, tg_id: int, model):
     else:
         name = f"Заказ от {today}"
     model = model
-    with session as ses:
-        entity = model(user_id=user_id, name=name, is_active=True)
-        ses.add(entity)
-        ses.flush()
-        cart_id = entity.id
-        ses.commit()
+    entity = model(user_id=user_id, name=name, is_active=True)
+    session.add(entity)
+    session.flush()
+    cart_id = entity.id
+    session.commit()
     return cart_id
 
 
@@ -621,10 +622,9 @@ def get_product_by_id(session: Session, product_id: int):
     :param product_id: id of product in database
     :return: product object or None if product not found
     """
-    with session as ses:
-        stmt = select(Product).where(Product.id == product_id)
-        result = session.scalar(stmt)
-        return result
+    stmt = select(Product).where(Product.id == product_id)
+    result = session.scalar(stmt)
+    return result
 
 
 def delete_product_by_id(session: Session, product_id: int) -> bool:
