@@ -16,3 +16,4 @@ RUN uv sync --frozen
 COPY . .
 
 CMD ["uv", "run", "python", "main.py"]
+

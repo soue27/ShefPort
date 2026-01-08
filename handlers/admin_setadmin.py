@@ -6,7 +6,6 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery, FSInputFile
 from loguru import logger
-from mypy.dmypy.client import action
 
 from database.db import session, get_product_by_article, entity_to_excel, delete_product_by_id, update_prooduct_field, \
     get_all_admin, export_data_to_excel, set_admin
