@@ -9,6 +9,8 @@ wheels/
 alembic/
 .env
 ShefPortShus.db
+*.docx
+*.pdf
 
 
 

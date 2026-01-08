@@ -12,11 +12,11 @@ def setup_logging() -> None:
     # =========================
     # 1) вывод в Консоль
     # =========================
-    logger.add(
-        sink=lambda msg: print(msg, end=""),
-        format="<green>{time:HH:mm:ss}</green> | {name} | <level>{level}</level> | {message}",
-        level="DEBUG",
-    )
+    # logger.add(
+    #     sink=lambda msg: print(msg, end=""),
+    #     format="<green>{time:HH:mm:ss}</green> | {name} | <level>{level}</level> | {message}",
+    #     level="DEBUG",
+    # )
     # =========================
     # 2) Файл debug.log — все уровни
     # =========================
