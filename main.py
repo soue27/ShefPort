@@ -41,7 +41,6 @@ async def main():
     #Добавляем объект BackupManager в dispatcher
     dp["bm"] = BackupManager(dp["pg"], dp["ya"])
 
-
     # Подключаем роутеры
     dp.include_router(user_start.router)
     dp.include_router(products.router)
