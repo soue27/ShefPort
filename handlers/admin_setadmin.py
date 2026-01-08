@@ -7,10 +7,8 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery, FSInputFile
 from loguru import logger
 
-from database.db import session, get_product_by_article, entity_to_excel, delete_product_by_id, update_prooduct_field, \
-    get_all_admin, export_data_to_excel, set_admin
-from database.models import Product
-from keyboards.admin_kb import get_product_change_kb, get_product_delete_kb, get_edit_product_kb, get_set_admins
+from database.db import session, get_all_admin, export_data_to_excel, set_admin
+from keyboards.admin_kb import get_set_admins
 
 router = Router(name='admin_setadmin')
 
@@ -55,7 +53,13 @@ async def add_admin(callback: CallbackQuery, state: FSMContext):
 
 @router.message(SetAdmin.admin_id)
 async def set_admin_id(message: Message, state: FSMContext):
-    admin_id = int(message.text)
+    try:
+        admin_id = int(message.text)
+        logger.info("Успешное преобразования ай ди админа в set_admin_id(")
+    except Exception as e:
+        logger.exception(f"Ошибка преобразования ай ди админа в set_admin_id(: {e}")
+        await message.answer("Введен не верный ай ди админа, попробуйте еще раз")
+        return
     data = await state.get_data()
     my_action = data['action']
     if my_action == 'delete':
