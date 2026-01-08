@@ -1,28 +1,29 @@
 version: "3.9"
 
 services:
-  app:
-    build: .
-    container_name: shefport_app
-    env_file:
-      - .env
-    depends_on:
-      - db
-    restart: always
-    volumes:
-      - app_data:/app/data
-
   db:
     image: postgres:16
-    container_name: shefport_db
+    container_name: shefport-db
+    restart: always
     env_file:
       - .env
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - shefport_db_data:/var/lib/postgresql/data
+
+  app:
+    build: .
+    container_name: shefport-app
     restart: always
+    env_file:
+      - .env
+    depends_on:
+      - db
+    command: ["/bin/bash", "entrypoint.sh"]
+    volumes:
+      - .:/app
 
 volumes:
-  postgres_data:
-  app_data:
+  shefport_db_data:
+
