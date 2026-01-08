@@ -158,7 +158,7 @@ def search_products(session: Session, query: str) -> list:
         select(Product)
         .order_by(
             case(
-                (Product.ostatok > 0.1),
+                (Product.ostatok > 0, 1),
                 else_=0
             ).desc()
         )
