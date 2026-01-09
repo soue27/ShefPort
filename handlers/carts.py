@@ -223,7 +223,7 @@ async def plus_item(call: CallbackQuery):
         return
     try:
         item = change_item_quantity(session, item_id, +1, CartItems)
-        commit_session(session)
+        # commit_session(session)
         logger.info(
             f"'carts.plus_item':  {call.from_user.id} получил данные 'change_item_quantity' "
         )
@@ -258,7 +258,7 @@ async def minus_item(call: CallbackQuery):
         return
     try:
         item = change_item_quantity(session, item_id, -1, CartItems)
-        commit_session(session)
+        # commit_session(session)
         logger.info(
             f"'carts.minus_item':  {call.from_user.id} получил данные 'change_item_quantity' "
         )

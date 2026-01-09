@@ -457,7 +457,7 @@ def change_item_quantity(session: Session, item_id: int, delta: int, model):
         return None
 
     item.quantity = max(1, item.quantity + delta)
-    # session.commit()
+    session.commit()
     session.refresh(item)
     return item
 
