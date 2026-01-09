@@ -15,6 +15,18 @@ router = Router(name='admin_product')
 user_messages = {}
 
 
+from sqlalchemy.exc import SQLAlchemyError
+
+def commit_session(session):
+    """Коммитим изменения с обработкой ошибок и откатом при исключении."""
+    try:
+        session.commit()
+    except SQLAlchemyError as e:
+        session.rollback()
+        logger.exception(f"Ошибка при коммите сессии: {e}")
+        raise
+
+
 class ViewProduct(StatesGroup): #Стейт для ввода артикля товара
     article = State()
 
@@ -111,6 +123,7 @@ async def confirm_delete_product(callback: CallbackQuery):
         await callback.message.answer("Возникла ошибка, попробуйте еще раз")
         return
     if delete_product_by_id(session, product_id):
+        commit_session(session)
         await callback.message.answer(f"✅ Товар удален")
         logger.info(f"Успешное удаление товара {product_id} в confirm_delete_product")
         user_id = callback.from_user.id
@@ -122,6 +135,7 @@ async def confirm_delete_product(callback: CallbackQuery):
                     logger.exception(f"Ошибка при удалении сообщений в confirm_delete_product: {e}")
             del user_messages[user_id]
     else:
+        commit_session(session)
         await callback.answer("❌ Товар не найден", show_alert=True)
         logger.error(f"Неуспешное удаление товара {product_id} в confirm_delete_product")
 
@@ -171,6 +185,7 @@ async def update_image(message: Message, state: FSMContext):
     print(data)
     try:
         update_prooduct_field(session, product_id, field, value)
+        commit_session(session)
         await message.answer("🖼 Изображение обновлено")
     except Exception as e:
         await message.answer(f"Error {e}")
@@ -188,6 +203,7 @@ async def enter_new_value(message: Message, state: FSMContext):
     print(data)
     try:
         update_prooduct_field(session, product_id, field, value)
+        commit_session(session)
         await message.answer("✅ Товар обновлен")
     except Exception as e:
         await message.answer(f"Error {e}")

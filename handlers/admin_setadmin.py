@@ -13,6 +13,18 @@ from keyboards.admin_kb import get_set_admins
 router = Router(name='admin_setadmin')
 
 
+from sqlalchemy.exc import SQLAlchemyError
+
+def commit_session(session):
+    """Коммитим изменения с обработкой ошибок и откатом при исключении."""
+    try:
+        session.commit()
+    except SQLAlchemyError as e:
+        session.rollback()
+        logger.exception(f"Ошибка при коммите сессии: {e}")
+        raise
+
+
 class SetAdmin(StatesGroup):
     admin_id = State()
 
@@ -64,8 +76,10 @@ async def set_admin_id(message: Message, state: FSMContext):
     my_action = data['action']
     if my_action == 'delete':
         set_admin(session, admin_id, to_delete=True)
+        commit_session(session)
         await message.answer("Админ удален")
     elif my_action == 'add':
         set_admin(session, admin_id, to_delete=False)
+        commit_session(session)
         await message.answer("Админ добавлен")
     await state.clear()

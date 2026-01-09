@@ -10,5 +10,8 @@ class DBSessionMiddleware(BaseMiddleware):
         try:
             data["session"] = session
             return await handler(event, data)
+        except Exception:
+            session.rollback()
+            raise
         finally:
             session.close()

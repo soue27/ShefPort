@@ -21,6 +21,7 @@ from sqlalchemy import create_engine
 from sqlalchemy import select, func, update, delete
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import Session, DeclarativeBase
 from sqlalchemy.pool import QueuePool
@@ -89,7 +90,7 @@ def save_costumer(session: Session, callback: CallbackQuery, news: bool):
     else:
         costumer.news = news
         costumer.updated_at = datetime.now()
-    session.commit()
+    # session.commit()
 
 
 def get_random_photo(session: Session):
@@ -131,7 +132,7 @@ def get_products_by_category(session: Session, category_id: int, in_stock: bool 
     if not in_stock:
         stmt = select(Product).where(Product.category_id == category_id)
     else:
-        stmt = select(Product).where(Product.category_id == category_id).where(Product.ostatok > 0.1)
+        stmt = select(Product).where(Product.category_id == category_id).where(Product.ostatok > 0.05)
     result = session.scalars(stmt).all()
     return result
 
@@ -158,7 +159,7 @@ def search_products(session: Session, query: str) -> list:
         select(Product)
         .order_by(
             case(
-                (Product.ostatok > 0, 1),
+                (Product.ostatok > 0.05, 1),
                 else_=0
             ).desc()
         )
@@ -241,7 +242,7 @@ def save_question(session: Session, user_id: int, mess_id: int, text: str):
     """
     question = Question(user_id=user_id, questions_id=mess_id, text=text)
     session.add(question)
-    session.commit()
+    # session.commit()
 
 
 def get_all_questions(session: Session):
@@ -331,7 +332,7 @@ def set_admin(session: Session, admin_tg_id: int, to_delete: bool):
         admin.is_admin = False
     else:
         admin.is_admin = True
-    session.commit()
+    # session.commit()
 
 
 def save_answer(session: Session, question_id, answer_text) -> bool:
@@ -342,7 +343,7 @@ def save_answer(session: Session, question_id, answer_text) -> bool:
     question.answer = answer_text
     question.is_answered = True
     question.answer_at = datetime.now()
-    session.commit()
+    # session.commit()
     return True
 
 
@@ -369,7 +370,7 @@ def save_news(session: Session, data: dict):
         photo = None
     news = News(title=title, post=post, url=url, image_url=photo, media_type=type1)
     session.add(news)
-    session.commit()
+    # session.commit()
 
 
 # regoin
@@ -387,7 +388,7 @@ def set_active_entity(session: Session, tg_id: int, model):
     session.add(entity)
     session.flush()
     cart_id = entity.id
-    session.commit()
+    # session.commit()
     return cart_id
 
 
@@ -423,7 +424,7 @@ def save_product_to_entity(session: Session, entity_id: int, product_id: int, qu
             unit_price=unit_price
         )
         session.add(item)
-    session.commit()
+    # session.commit()
     return True
 
 
@@ -456,7 +457,7 @@ def change_item_quantity(session: Session, item_id: int, delta: int, model):
         return None
 
     item.quantity = max(1, item.quantity + delta)
-    session.commit()
+    # session.commit()
     session.refresh(item)
     return item
 
@@ -465,7 +466,7 @@ def delete_entity_item(session: Session, item_id: int, model):
     """Удаляет элемент корзины CartItems, OrderItems"""
     stmt = delete(model).where(model.id == item_id)
     session.execute(stmt)
-    session.commit()
+    # session.commit()
 
 
 def confirm_entity(session: Session, cart_id: int, model):
@@ -476,15 +477,21 @@ def confirm_entity(session: Session, cart_id: int, model):
         .values(is_active=False, is_done=True)
     )
     session.execute(stmt)
-    session.commit()
+    # session.commit()
     return session.get(model, cart_id)
 
 
 def delete_entity(session: Session, item_id: int, model):
     """Удаляет  корзину Cart, Order"""
+    print(model)
+    if model is Cart:
+        stmt = delete(CartItems).where(CartItems.cart_id == item_id)
+    else:
+        stmt = delete(OrderItems).where(OrderItems.order_id == item_id)
+    session.execute(stmt)
     stmt = delete(model).where(model.id == item_id)
     session.execute(stmt)
-    session.commit()
+    # session.commit()
 
 
 def get_entity_item(session: Session, item_id: int, model):
@@ -517,7 +524,7 @@ def set_entity_for_issue(session: Session, entity_id, model):
     ).returning(model)
     result = session.execute(stmt)
     updated_entity = result.scalar_one_or_none()
-    session.commit()
+    # session.commit()
     return updated_entity
 
 
@@ -532,7 +539,7 @@ def set_entity_close(session: Session, id, model):
     """Закрывает корзину Cart, Order после выдачи товара"""
     stmt = update(model).where(model.id == id).values(is_issued=False, is_issued_at=datetime.now())
     session.execute(stmt)
-    session.commit()
+    # session.commit()
     return session.get(model, id)
 
 
@@ -632,7 +639,7 @@ def delete_product_by_id(session: Session, product_id: int) -> bool:
     if not product:
         return False
     session.delete(product)
-    session.commit()
+    # session.commit()
     return True
 
 
@@ -713,4 +720,4 @@ def update_prooduct_field(session: Session, product_id, field, value):
             product.main_image = value
         case _:
             raise ValueError("Неизвестное поле")
-    session.commit()
+    #session.commit()

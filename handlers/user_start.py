@@ -25,6 +25,19 @@ from keyboards.mainkb import get_main_kb
 
 router = Router(name='user_start')
 
+
+from sqlalchemy.exc import SQLAlchemyError
+
+def commit_session(session):
+    """Коммитим изменения с обработкой ошибок и откатом при исключении."""
+    try:
+        session.commit()
+    except SQLAlchemyError as e:
+        session.rollback()
+        logger.exception(f"Ошибка при коммите сессии: {e}")
+        raise
+
+
 @router.message(CommandStart())
 async def user_start(message: Message):
     """Обработка команды /start:
@@ -45,6 +58,7 @@ async def set_news(callback: types.CallbackQuery):
     if callback.data == 'subscribe':
         try:
             save_costumer(session, callback, news=True)
+            commit_session(session)
             logger.info(
                 f"'set_news.subscribe':  {callback.from_user.id} получил данные 'save_costumer' "
             )
@@ -57,6 +71,7 @@ async def set_news(callback: types.CallbackQuery):
     elif callback.data == 'unsubscribe':
         try:
             save_costumer(session, callback, news=False)
+            commit_session(session)
             logger.info(
                 f"'set_news.unsubscribe':  {callback.from_user.id} получил данные 'save_costumer' "
             )

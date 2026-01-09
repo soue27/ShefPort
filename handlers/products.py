@@ -7,6 +7,7 @@ import json
 
 from aiogram import Router, F, types
 from aiogram.types import CallbackQuery
+from sqlalchemy.exc import SQLAlchemyError
 
 from database.db import get_product_description, session
 from keyboards.describe_kb import create_describe_keyboard
@@ -16,6 +17,9 @@ from loguru import logger
 router = Router(name='products_router')
 
 message_store = {}
+
+
+
 
 # Обработчики действий с товарами
 

@@ -43,6 +43,18 @@ router = Router(name="carts")
 user_cart_messages = {}
 
 
+from sqlalchemy.exc import SQLAlchemyError
+
+def commit_session(session):
+    """Коммитим изменения с обработкой ошибок и откатом при исключении."""
+    try:
+        session.commit()
+    except SQLAlchemyError as e:
+        session.rollback()
+        logger.exception(f"Ошибка при коммите сессии: {e}")
+        raise
+
+
 class Itemscount(StatesGroup):
     itemscount = State()
 
@@ -75,6 +87,7 @@ async def add_product_to_cart(callback: types.CallbackQuery, state: FSMContext):
                             )
     if not get_active_entity(session, callback.from_user.id, Cart): #Если нет активной корзины, то создаем ее
         cart = set_active_entity(session, callback.from_user.id, Cart)
+        commit_session(session)
     try:
         cart = get_active_entity(session, callback.from_user.id, Cart) #Получаем активную корзину
         logger.info(f"'add_product_to_cart': Пользователь {callback.from_user.id} получил активную корзину {cart.id}")
@@ -121,6 +134,7 @@ async def get_items_count(message: Message, state: FSMContext):
                                 unit_price=data['price'],
                                 model=CartItems
                                 ):
+            commit_session(session)
             await message.answer(text="Товар добавлен в корзину", show_alert=True)
         logger.info(
             f"Пользователь {message.from_user.id} сохранил товар {data['product_id']} в корзину {data['cart_id']}"
@@ -209,6 +223,7 @@ async def plus_item(call: CallbackQuery):
         return
     try:
         item = change_item_quantity(session, item_id, +1, CartItems)
+        commit_session(session)
         logger.info(
             f"'carts.plus_item':  {call.from_user.id} получил данные 'change_item_quantity' "
         )
@@ -243,6 +258,7 @@ async def minus_item(call: CallbackQuery):
         return
     try:
         item = change_item_quantity(session, item_id, -1, CartItems)
+        commit_session(session)
         logger.info(
             f"'carts.minus_item':  {call.from_user.id} получил данные 'change_item_quantity' "
         )
@@ -288,6 +304,7 @@ async def delete_item_confirm(call: CallbackQuery):
         return
     try:
         delete_entity_item(session, item_id, CartItems)
+        commit_session(session)
         logger.info(
             f"'carts.delete_item_confirm':  {call.from_user.id} получил данные 'delete_entity_item' "
         )
@@ -315,6 +332,7 @@ async def delete_item_cancel(call: CallbackQuery):
         return
     try:
         item = get_entity_item(session, item_id, CartItems)
+        commit_session(session)
         logger.info(
             f"'carts.delete_item_cancel':  {call.from_user.id} получил данные 'get_entity_item' "
         )
@@ -351,6 +369,7 @@ async def confirm_cart_handler(call: CallbackQuery):
         return
     try:
         cart = confirm_entity(session, cart_id, Cart)
+        commit_session(session)
         logger.info(
             f"'carts.confirm_cart_handler':  {call.from_user.id} получил данные 'confirm_entity' "
         )
@@ -425,6 +444,7 @@ async def delete_cart_confirm(call: CallbackQuery):
         return
     try:
         delete_entity(session, int(item_id), Cart)
+        commit_session(session)
         logger.info(
             f"'carts.delete_cart_confirm':  {call.from_user.id} получил данные 'delete_entity' "
         )

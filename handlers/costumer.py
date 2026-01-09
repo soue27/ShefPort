@@ -12,7 +12,7 @@ from aiogram.types import Message
 
 from loguru import logger
 
-from database.db import session, get_all_categories, search_products, save_question, get_all_admin
+from database.db import session, get_all_categories, search_products, save_question, get_all_admin, get_costumer_id
 
 from handlers.product_helpers import start_category_products
 from handlers.search_helpers import (
@@ -24,6 +24,19 @@ from handlers.search_helpers import (
 from keyboards.categorieskb import get_categories_kb, get_exit_search_kb, show_in_stock_kb
 
 router = Router(name='costumer')
+
+
+from sqlalchemy.exc import SQLAlchemyError
+
+def commit_session(session):
+    """Коммитим изменения с обработкой ошибок и откатом при исключении."""
+    try:
+        session.commit()
+    except SQLAlchemyError as e:
+        session.rollback()
+        logger.exception(f"Ошибка при коммите сессии: {e}")
+        raise
+
 
 class SearchProduct(StatesGroup):
     """
@@ -149,10 +162,13 @@ async def get_message(message: Message, state: FSMContext, bot: Bot):
         None: Saves the message to the database and sends a confirmation message to the user.
     """
     try:
-        save_question(session, message.from_user.id, message.message_id, message.text)
+        user_id = get_costumer_id(session, message.from_user.id)
+        print(user_id)
+        save_question(session, user_id, message.from_user.id, message.text)
         logger.info(
         f"'costumer.get_message: пользователь {message.from_user.id} сохранил данные 'save_question' "
         )
+        commit_session(session)
     except Exception as e:
         logger.exception(
         f" Запрос пользователя {message.from_user.id} в БД 'save_question'"

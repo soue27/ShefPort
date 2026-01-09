@@ -176,7 +176,7 @@ class Question(AbstractBase):
     """
     __tablename__ = "questions"
     user_id = Column(Integer, ForeignKey('costumers.id'), nullable=False)
-    questions_id = Column(Integer) #Ай ди сообщания пользователя в ТГ Потом нужно исправить этот косяк
+    questions_id = Column(BigInteger) #Ай ди чата
     text = Column(Text)
     is_answered = Column(Boolean, default=False)
     answer = Column(Text, nullable=True)

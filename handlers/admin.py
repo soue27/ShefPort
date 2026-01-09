@@ -71,6 +71,18 @@ router = Router(name='admin')
 user_cart_messages = {}
 
 
+from sqlalchemy.exc import SQLAlchemyError
+
+def commit_session(session):
+    """Коммитим изменения с обработкой ошибок и откатом при исключении."""
+    try:
+        session.commit()
+    except SQLAlchemyError as e:
+        session.rollback()
+        logger.exception(f"Ошибка при коммите сессии: {e}")
+        raise
+
+
 # logger = logger.bind(name="admin")
 
 
@@ -224,7 +236,7 @@ async def get_answer(callback: CallbackQuery, state: FSMContext) -> None:
         return
     # Сохранение данных в state, для передачи в следующую функцию
     await state.update_data(questions_id=question.id)
-    await state.update_data(tg_id=question.user_id)
+    await state.update_data(tg_id=question.questions_id)
     await state.update_data(question_text=question.text)
     # Вывод сервисных сообщений админу
     await callback.message.delete()
@@ -270,6 +282,7 @@ async def handle_answer(message: Message, state: FSMContext, bot: Bot) -> None:
     #сохранение ответа в БД и логирование ошибки
     try:
         save_answer(session, questions_id, text_otveta)
+        commit_session(session)
         await message.answer("Ответ отправлен")
     except Exception as e:
         await message.answer("Ошибка при отправке ответа")
@@ -492,6 +505,7 @@ async def show_mailing_confirm(callback: CallbackQuery, state: FSMContext, bot: 
             await send_news(data=my_data, users=users, bot=bot)
             try:
                 save_news(session, my_data)
+                commit_session(session)
             except Exception as e:
                 logger.exception(
                     f"Ошибка БД запрос 'save_news' в 'show_mailing_confirm': {e}"
@@ -708,6 +722,7 @@ async def mess_cart_for_done(callback: CallbackQuery, state: FSMContext, bot: Bo
                                            "заказ перешел в категорию 'Для выдачи'"))
             await callback.answer()
             set_entity_for_issue(session, cart_id, Cart)
+            commit_session(session)
             logger.info(f"Пользователю {name} направлено уведмоление в 'mess_cart_for_done' от {callback.from_user.id}")
             return
         else:
@@ -757,6 +772,7 @@ async def handle_comment(message: Message, state: FSMContext, bot: Bot) -> None:
         return
     try:
         set_entity_for_issue(session, cart_id, Cart)
+        commit_session(session)
         logger.info(
             f" Уставлен признак готовности в выдаче корзины {cart_id:} в 'handle_comment'")
     except Exception as e:
@@ -797,6 +813,7 @@ async def close_cart(callback: CallbackQuery) -> None:
         return
     try:
         set_entity_close(session, cart_id, Cart)
+        commit_session(session)
         logger.info(
             f" Запрос {callback.from_user.id} в БД 'set_entity_close' в 'close_cart' выполнен успешно"
         )
@@ -976,6 +993,7 @@ async def mess_order_for_done(callback: CallbackQuery, state: FSMContext, bot: B
         await callback.answer()
         try:
             set_entity_for_issue(session, order_id, Order)
+            commit_session(session)
         except Exception as e:
             logger.exception(
                 f" Запрос {callback.from_user.id} в БД 'set_entity_for_issue', номер заказа {order_id}' "
@@ -1015,6 +1033,7 @@ async def handle_comment_order(message: Message, state: FSMContext, bot: Bot) ->
         await message.answer("Клиент уведомлен о заказе \n"
                              "заказ перешел в ожидание доставки")
         set_entity_for_issue(session, order_id, Order)
+        commit_session(session)
         logger.info(
             f" Запрос {message.from_user.id} в 'handle_comment_order' ввел комментарий CommentStatesOrder.CommentOrder"
             f" выполенен запрос в БД 'set_entity_for_issue' для {order_id}")
@@ -1061,6 +1080,7 @@ async def close_order(callback: CallbackQuery) -> None:
         return
     try:
         set_entity_close(session, order_id, Order)
+        commit_session(session)
         logger.info(
             f" Запрос {callback.from_user.id} в БД 'set_entity_close' {order_id} "
             f"в 'close_order' выполнен успешно"

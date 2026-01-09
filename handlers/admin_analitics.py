@@ -14,6 +14,18 @@ router = Router(name='admin_analitics')
 user_cart_messages = {}
 
 
+from sqlalchemy.exc import SQLAlchemyError
+
+def commit_session(session):
+    """Коммитим изменения с обработкой ошибок и откатом при исключении."""
+    try:
+        session.commit()
+    except SQLAlchemyError as e:
+        session.rollback()
+        logger.exception(f"Ошибка при коммите сессии: {e}")
+        raise
+
+
 @router.callback_query(F.data == "upload_xlsx")
 async def show_tables(callback: CallbackQuery):
     """Show tables to export."""

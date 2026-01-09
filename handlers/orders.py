@@ -7,6 +7,7 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery
 
 from loguru import logger
+from sqlalchemy.exc import SQLAlchemyError
 
 from database.db import (
     session,
@@ -41,6 +42,15 @@ router = Router(name='orders')
 
 user_order_messages = {}
 
+
+def commit_session(session):
+    """Коммитим изменения с обработкой ошибок и откатом при исключении."""
+    try:
+        session.commit()
+    except SQLAlchemyError as e:
+        session.rollback()
+        logger.exception(f"Ошибка при коммите сессии: {e}")
+        raise
 
 class Orderitemscount(StatesGroup):
     Orderitemscount = State()
@@ -85,6 +95,8 @@ async def add_product_to_order(callback: types.CallbackQuery, state: FSMContext)
     )
     if not order:
         order = set_active_entity(session, callback.from_user.id, Order)
+
+        commit_session(session)
     try:
         order = get_active_entity(session, callback.from_user.id, Order)
         logger.info(
@@ -134,6 +146,7 @@ async def get_orderitems_count(message: Message, state: FSMContext):
                                 model=OrderItems
                                 ):
             await message.answer(text="Товар добавлен в заказ", show_alert=True)
+        commit_session(session)
         logger.info(
             f"Пользователь {message.from_user.id} сохранил товар {data['product_id']} в заказ {data['order_id']}"
             f" количество {data['count']} запрос 'save_product_to_entity' get_orderitems_count")
@@ -221,6 +234,7 @@ async def plus_orderitem(call: CallbackQuery):
         return
     try:
         item = change_item_quantity(session, item_id, +1, OrderItems)
+        commit_session(session)
         logger.info(
             f"'plus_orderitem':  {call.from_user.id} получил данные 'change_item_quantity' "
         )
@@ -254,6 +268,7 @@ async def minus_orderitem(call: CallbackQuery):
         return
     try:
         item = change_item_quantity(session, item_id, -1, OrderItems)
+        commit_session(session)
         logger.info(
             f"'minus_orderitem':  {call.from_user.id} получил данные 'change_item_quantity' "
         )
@@ -300,6 +315,7 @@ async def delete_orderitem_confirm(call: CallbackQuery):
         return
     try:
         delete_entity_item(session, item_id, OrderItems)
+        commit_session(session)
         logger.info(
             f"'delete_orderitem_confirm':  {call.from_user.id} получил данные 'delete_entity_item' "
         )
@@ -363,6 +379,7 @@ async def confirm_order_handler(call: CallbackQuery):
         return
     try:
         order = confirm_entity(session, order_id, Order)
+        commit_session(session)
         logger.info(
             f"'confirm_order_handler':  {call.from_user.id} получил данные 'confirm_entity' "
         )
@@ -438,6 +455,7 @@ async def delete_order_confirm(call: CallbackQuery):
         return
     try:
         delete_entity(session, int(item_id), Order)
+        commit_session(session)
         logger.info(
             f"'delete_order_confirm':  {call.from_user.id} получил данные 'delete_entity' "
         )
