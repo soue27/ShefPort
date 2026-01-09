@@ -23,9 +23,11 @@
     Для добавления нового обработчика используйте декоратор @router с указанием типа обновления,
     например: @router.message(Command("команда")) или @router.callback_query(F.data == "действие")
 """
+import asyncio
 
 from aiogram import Router, F, Bot
 from aiogram.enums import ParseMode
+from aiogram.exceptions import TelegramForbiddenError, TelegramRetryAfter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, CallbackQuery, FSInputFile
@@ -320,24 +322,27 @@ async def send_news(data: dict, users: list, bot: Bot):
         url_text = f'<a href="{data["url"]}">Подробнее...</a>'
     else:
         url_text = '<a href="https://vk.com/fish_chus">Наша группа ВК</a>'
-    try:
-        if data['type'] == 'image':
-            for user in users:
+
+    for user in users:
+        try:
+            if data['type'] == 'image':
                 await bot.send_photo(chat_id=user, photo=data['photo'], caption=mypost)
                 await bot.send_message(chat_id=user, text=url_text, disable_web_page_preview=True)
-                logger.info(f"'send_news': Админ сделала рассылку с фото для {len(users)} пользователей")
-        elif data['type'] == 'film':
-            for user in users:
+            elif data['type'] == 'film':
                 await bot.send_video(chat_id=user, video=data['photo'], caption=mypost)
                 await bot.send_message(chat_id=user, text=url_text, disable_web_page_preview=True)
-                logger.info(f"'send_news': Админ сделала рассылку с видео для {len(users)} пользователей")
-        else:
-            for user in users:
+            else:
                 await bot.send_message(chat_id=user, text=f"{mypost} {url_text}", disable_web_page_preview=True)
-                logger.info(f"'send_news': Админ сделала рассылку с текстом для {len(users)} пользователей")
-    except Exception as e:
-        await bot.send_message(chat_id=SUPERADMIN_ID, text="Ошибка при отправке ответа")
-        logger.exception(f"Ошибка при рассылке новостей в 'send_news' для пользователей: {e}")
+        except TelegramForbiddenError:
+            # Снять отметку о рассылке
+            logger.exception(f"{user}, заблокировал бота")
+        except TelegramRetryAfter as e:
+            await asyncio.sleep(0.1)
+        except Exception as e:
+            # Ловим другие ошибки и продолжаем
+            logger.exception(f"Ошибка при отправке пользователю {user}: {e}")
+            continue
+    logger.info(f"Проведена рассылка новости с {data['type']}, для {len(users)} пользователей")
 
 
 @router.callback_query(F.data == "mailing")
@@ -507,6 +512,7 @@ async def show_mailing_confirm(callback: CallbackQuery, state: FSMContext, bot: 
     elif callback.data.split("_")[1] == 'confirm':
         data = await state.get_data()
         my_data = data.get('mailing_content')
+        print(my_data)
         try:
             users = get_all_costumer_for_mailing(session)
         except Exception as e:
@@ -514,6 +520,7 @@ async def show_mailing_confirm(callback: CallbackQuery, state: FSMContext, bot: 
                 f"Ошибка БД запрос 'get_all_costumer_for_mailing'  в 'show_mailing_confirm': {e}"
             )
             return
+        print(users)
         if my_data:
             await send_news(data=my_data, users=users, bot=bot)
             try:
