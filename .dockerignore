@@ -10,7 +10,9 @@ alembic/
 ShefPortShus.db
 *.docx
 *.pdf
+
 services/setup_scheduler.py
+
 
 .venv
 .envrc
