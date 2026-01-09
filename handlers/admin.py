@@ -156,6 +156,19 @@ async def admin_start(message: Message) -> None:
     logger.info(f"Администратор вошёл в панель: id={user.id}, username={user.username}, name={user.full_name}")
 
 
+@router.message(Command("admin"))
+async def not_admin_start(message: Message) -> None:
+    """
+    Обработчик команды /admin.
+    Приветствует администратора и отображает главное меню.
+    Args:
+        message: Объект сообщения от пользователя
+    """
+    user = message.from_user
+    await message.answer(f"Привет, {user.full_name}! Вы не являетесь администратором ")
+    logger.info(f"Не Администратор пытался войти в панель: id={user.id}, username={user.username}, name={user.full_name}")
+
+
 @router.callback_query(F.data == "check_questions")
 async def show_questions(callback: CallbackQuery) -> None:
     """
