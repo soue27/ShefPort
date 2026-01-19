@@ -26,5 +26,6 @@ MAIL_USER = os.getenv('MAIL_USER')
 MAIL_PASS = os.getenv('MAIL_PASS')
 SENDER_FILTER = os.getenv('SENDER_FILTER')
 READ_DIR = os.getenv('READ_DIR')
-SUPERADMIN_ID = list(os.getenv('SUPERADMIN_ID').split(","))
+# SUPERADMIN_ID = list(os.getenv('SUPERADMIN_ID').split(","))
+SUPERADMIN_ID = os.getenv('SUPERADMIN_ID')
 

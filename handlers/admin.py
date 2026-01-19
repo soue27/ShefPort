@@ -535,22 +535,21 @@ async def show_mailing_confirm(callback: CallbackQuery, state: FSMContext, bot: 
         await state.clear()
 
 
-async def send_file_to_admin(file_path: str, bot: Bot, tg_ids: list = SUPERADMIN_ID):
+async def send_file_to_admin(file_path: str, bot: Bot, tg_id: int = SUPERADMIN_ID):
     """Send file to superadmin.
     Args:
         file_path (str): Path to file.
         bot (Bot): Bot instance.
-        tg_ids: List - списко супердаминов из env
+        tg_id: List - списко супердаминов из env
     """
-    for admin_id in tg_ids:
-        try:
-            user_id = admin_id
-            file_path = file_path
-            document = FSInputFile(file_path)
-            await bot.send_document(chat_id=user_id, document=document, caption="Необходимо добавить в БД данные позиции")
-        except Exception as e:
-            logger.exception(f"Ошибка отправки файла в 'send_file_to_admin': {e}")
-            return
+    try:
+        user_id = tg_id
+        file_path = file_path
+        document = FSInputFile(file_path)
+        await bot.send_document(chat_id=user_id, document=document, caption="Необходимо добавить в БД данные позиции")
+    except Exception as e:
+        logger.exception(f"Ошибка отправки файла в 'send_file_to_admin': {e}")
+        return
 
 
 @router.message(F.document, IsAdmin())
