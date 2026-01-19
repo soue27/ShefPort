@@ -1,6 +1,6 @@
 from typing import Sequence, Any
 
-from aiogram import Router, F, types
+from aiogram import Router, F, types, Bot
 from aiogram.enums import ParseMode
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
@@ -24,7 +24,7 @@ from database.db import (
     get_entity_by_id,
     get_costumer_id,
     get_entity_by_user_id,
-    get_all_categories,
+    get_all_categories, get_entity_id_by_items_id,
 )
 from database.models import Product, Cart, CartItems
 from keyboards.carts_kb import (
@@ -210,7 +210,7 @@ async def show_carts(message: Message):
 # -------------------------------------------------------
 
 @router.callback_query(F.data.startswith("CartItem_plus"))
-async def plus_item(call: CallbackQuery):
+async def plus_item(call: CallbackQuery, bot: Bot):
     """Обработка нажатия кнопки увеличения товара в корзине"""
     _, item_id = call.data.split(":")
     try:
@@ -242,10 +242,22 @@ async def plus_item(call: CallbackQuery):
         parse_mode=ParseMode.HTML
     )
     await call.answer()
+    #Перерисовка итоговой стоимости корзины
+    key = list(user_cart_messages.keys())[0]
+    message_id = user_cart_messages[key][-1]
+    cart_id = get_entity_id_by_items_id(session, item_id, CartItems)
+    cart = get_entity_by_id(session, cart_id, Cart)
+    await bot.edit_message_text(
+        f"Итого: *{cart.total_amount:.2f}*₽",
+        chat_id=key,
+        message_id=message_id,
+        reply_markup=cart_main_kb(cart.id, "Cart"),
+        parse_mode="Markdown"
+    )
 
 
 @router.callback_query(F.data.startswith("CartItem_minus"))
-async def minus_item(call: CallbackQuery):
+async def minus_item(call: CallbackQuery, bot: Bot):
     """Обработка нажатия кнопки уменьшения товара в корзине"""
     _, item_id = call.data.split(":")
     try:
@@ -276,6 +288,18 @@ async def minus_item(call: CallbackQuery):
         parse_mode=ParseMode.HTML
     )
     await call.answer()
+    # Перерисовка итоговой стоимости корзины
+    key = list(user_cart_messages.keys())[0]
+    message_id = user_cart_messages[key][-1]
+    cart_id = get_entity_id_by_items_id(session, item_id, CartItems)
+    cart = get_entity_by_id(session, cart_id, Cart)
+    await bot.edit_message_text(
+        f"Итого: *{cart.total_amount:.2f}*₽",
+        chat_id=key,
+        message_id=message_id,
+        reply_markup=cart_main_kb(cart.id, "Cart"),
+        parse_mode="Markdown"
+    )
 
 
 # -------------------------------------------------------
@@ -291,11 +315,13 @@ async def delete_item_request(call: CallbackQuery):
 
 
 @router.callback_query(F.data.startswith("CartItem_delete_confirm:"))
-async def delete_item_confirm(call: CallbackQuery):
+async def delete_item_confirm(call: CallbackQuery, bot: Bot):
     """Обработка подтверждения удаления товара в корзине и удаление из БД"""
     _, item_id = call.data.split(":")
     try:
         item_id = int(item_id)
+        cart_id = get_entity_id_by_items_id(session, item_id, CartItems)
+        cart = get_entity_by_id(session, cart_id, Cart)
     except Exception as e:
         logger.exception(
             f" Запрос пользователя {call.from_user.id} преобразование номера товара {item_id} в целое "
@@ -316,6 +342,19 @@ async def delete_item_confirm(call: CallbackQuery):
         return
     await call.message.edit_text("🗑 Товар удалён")
     await call.answer()
+    # Перерисовка итоговой стоимости корзины
+    key = list(user_cart_messages.keys())[0]
+    message_id = user_cart_messages[key][-1]
+    # cart_id = get_entity_id_by_items_id(session, item_id, CartItems)
+    # cart = get_entity_by_id(session, cart_id, Cart)
+    print(item_id, cart_id, cart)
+    await bot.edit_message_text(
+        f"Итого: *{cart.total_amount:.2f}*₽",
+        chat_id=key,
+        message_id=message_id,
+        reply_markup=cart_main_kb(cart.id, "Cart"),
+        parse_mode="Markdown"
+    )
 
 
 @router.callback_query(F.data.startswith("CartItem_delete_cancel:"))

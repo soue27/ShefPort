@@ -551,6 +551,16 @@ def get_entity_by_user_id(session: Session, user_id: int, model):
     return result
 
 
+def get_entity_id_by_items_id(session: Session, item_id, model):
+    """Получение ай ди корзины/заказа по айди товара в корзине/заказе
+    для перерисовки итоговой суммы"""
+    if model == CartItems:
+        stmt = select(model.cart_id).where(model.id == item_id)
+    else:
+        stmt = select(model.order_id).where(model.id == item_id)
+    result = session.execute(stmt)
+    return result.scalar_one_or_none()
+
 ##########################################
 # раздел работы с корзиной покупок и заказов
 ##########################################

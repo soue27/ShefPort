@@ -28,5 +28,3 @@ SENDER_FILTER = os.getenv('SENDER_FILTER')
 READ_DIR = os.getenv('READ_DIR')
 SUPERADMIN_ID = list(os.getenv('SUPERADMIN_ID').split(","))
 
-print(SUPERADMIN_ID, type(SUPERADMIN_ID))
-

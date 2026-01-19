@@ -25,7 +25,7 @@ from database.db import (
     get_entity_by_id,
     get_costumer_id,
     get_entity_by_user_id,
-    get_all_categories,
+    get_all_categories, get_entity_id_by_items_id,
 )
 from database.models import OrderItems, Product, Order
 from keyboards.carts_kb import (
@@ -221,7 +221,7 @@ async def show_order(message: Message):
 # -------------------------------------------------------
 
 @router.callback_query(F.data.startswith("OrderItem_plus"))
-async def plus_orderitem(call: CallbackQuery):
+async def plus_orderitem(call: CallbackQuery, bot: Bot):
     """Обработка нажатия кнопки увеличения товара в заказе"""
     _, item_id = call.data.split(":")
     try:
@@ -251,10 +251,22 @@ async def plus_orderitem(call: CallbackQuery):
         parse_mode=ParseMode.HTML
     )
     await call.answer()
+    # Перерисовка итоговой стоимости корзины
+    key = list(user_order_messages.keys())[0]
+    message_id = user_order_messages[key][-1]
+    order_id = get_entity_id_by_items_id(session, item_id, OrderItems)
+    order = get_entity_by_id(session, order_id, Order)
+    await bot.edit_message_text(
+        f"Итого: *{order.total_amount:.2f}*₽",
+        chat_id=key,
+        message_id=message_id,
+        reply_markup=cart_main_kb(order.id, "Order"),
+        parse_mode="Markdown"
+    )
 
 
 @router.callback_query(F.data.startswith("OrderItem_minus"))
-async def minus_orderitem(call: CallbackQuery):
+async def minus_orderitem(call: CallbackQuery, bot: Bot):
     """Обработка нажатия кнопки уменьшения товара в заказе"""
     _, item_id = call.data.split(":")
     try:
@@ -285,6 +297,18 @@ async def minus_orderitem(call: CallbackQuery):
         parse_mode=ParseMode.HTML
     )
     await call.answer()
+    # Перерисовка итоговой стоимости корзины
+    key = list(user_order_messages.keys())[0]
+    message_id = user_order_messages[key][-1]
+    order_id = get_entity_id_by_items_id(session, item_id, OrderItems)
+    order = get_entity_by_id(session, order_id, Order)
+    await bot.edit_message_text(
+        f"Итого: *{order.total_amount:.2f}*₽",
+        chat_id=key,
+        message_id=message_id,
+        reply_markup=cart_main_kb(order.id, "Order"),
+        parse_mode="Markdown"
+    )
 
 
 # -------------------------------------------------------
@@ -300,11 +324,13 @@ async def delete_orderitem_request(call: CallbackQuery):
 
 
 @router.callback_query(F.data.startswith("OrderItem_delete_confirm:"))
-async def delete_orderitem_confirm(call: CallbackQuery):
+async def delete_orderitem_confirm(call: CallbackQuery, bot: Bot):
     """Обработка подтверждения удаления товара в корзине и удаление из БД"""
     _, item_id = call.data.split(":")
     try:
         item_id = int(item_id)
+        order_id = get_entity_id_by_items_id(session, item_id, OrderItems)
+        order = get_entity_by_id(session, order_id, Order)
     except Exception as e:
         logger.exception(
             f" Запрос пользователя {call.from_user.id} преобразование номера товара {item_id} в целое "
@@ -325,6 +351,16 @@ async def delete_orderitem_confirm(call: CallbackQuery):
         return
     await call.message.edit_text("🗑 Товар удалён")
     await call.answer()
+    # Перерисовка итоговой стоимости корзины
+    key = list(user_order_messages.keys())[0]
+    message_id = user_order_messages[key][-1]
+    await bot.edit_message_text(
+        f"Итого: *{order.total_amount:.2f}*₽",
+        chat_id=key,
+        message_id=message_id,
+        reply_markup=cart_main_kb(order.id, "Order"),
+        parse_mode="Markdown"
+    )
 
 
 @router.callback_query(F.data.startswith("OrderItem_delete_cancel:"))
