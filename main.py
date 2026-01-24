@@ -45,7 +45,7 @@ async def main():
     dp.include_router(user_start.router)
     dp.include_router(products.router)
     dp.include_router(catalog.router)
-    dp.include_router(admin.router)
+
     dp.include_router(carts.router)
     dp.include_router(orders.router)
     dp.include_router(costumer.router)
@@ -53,18 +53,20 @@ async def main():
     dp.include_router(admin_analitics.router)
     dp.include_router(admin_product.router)
     dp.include_router(admin_setadmin.router)
+    dp.include_router(admin.router)
     routers = [
         user_start.router,
         products.router,
         catalog.router,
-        admin.router,
+
         carts.router,
         orders.router,
         costumer.router,
         admin_recovery.router,
         admin_analitics.router,
         admin_product.router,
-        admin_setadmin.router
+        admin_setadmin.router,
+        admin.router
     ]
     for r in routers:
         r.message.middleware(DBSessionMiddleware())
