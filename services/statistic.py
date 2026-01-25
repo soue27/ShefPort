@@ -76,6 +76,7 @@ async def get_statistic_for_week(session: Session, bot: Bot):
         count: list[dict] = []
     print(stats)
 
+
     dates = [entry["date"].date() for entry in next(iter(stats.values()))]
 
     # Создаём пустой DataFrame с индексом = даты
