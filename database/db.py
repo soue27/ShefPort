@@ -731,3 +731,8 @@ def update_prooduct_field(session: Session, product_id, field, value):
         case _:
             raise ValueError("Неизвестное поле")
     #session.commit()
+
+
+#***********************************************************
+#Сатистика
+#**********************************************************

@@ -11,6 +11,7 @@ alembic/
 ShefPortShus.db
 *.docx
 *.pdf
+qwen.md
 
 
 
@@ -24,3 +25,4 @@ env.bak/
 venv.bak/
 
 ShefPortChus.db
+qwen.md

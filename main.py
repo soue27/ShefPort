@@ -10,7 +10,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from data.config import (BOT_TOKEN, YANDEX_TOKEN, REMOTE_FOLDER,
                          DB_NAME, DB_USER, DB_HOST, DB_PORT, DB_PASSWORD, DB_BACKUP_DIR)
 from handlers import user_start, costumer, products, catalog, admin, orders, carts, admin_recovery, admin_analitics, \
-    admin_product, admin_setadmin
+    admin_product, admin_setadmin, admin_statistic
 from middleware.db import DBSessionMiddleware
 from middleware.user_activity import UserActivityMiddleware
 from services.backup_db import PostrgresBackup
@@ -53,12 +53,12 @@ async def main():
     dp.include_router(admin_analitics.router)
     dp.include_router(admin_product.router)
     dp.include_router(admin_setadmin.router)
+    dp.include_router(admin_statistic.router)
     dp.include_router(admin.router)
     routers = [
         user_start.router,
         products.router,
         catalog.router,
-
         carts.router,
         orders.router,
         costumer.router,
@@ -66,6 +66,7 @@ async def main():
         admin_analitics.router,
         admin_product.router,
         admin_setadmin.router,
+        admin_statistic.router,
         admin.router
     ]
     for r in routers:
