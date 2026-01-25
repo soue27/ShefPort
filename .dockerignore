@@ -10,8 +10,7 @@ alembic/
 ShefPortShus.db
 *.docx
 *.pdf
-
-services/setup_scheduler.py
+qwen.md
 
 
 .venv
