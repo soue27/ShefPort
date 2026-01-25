@@ -26,14 +26,15 @@ async def start_sheduler(bot: Bot):
         backup_and_upload,
         trigger="cron",
           # Pass the bot instance to the function
-        day_of_week="mon",
         hour=1,
         minute=10
         )
+    #отправка еженедельной статистики
     scheduler.add_job(
         get_statistic_for_week,
         trigger="cron",
         args=(session, bot),
+        day_of_week="mon",
         hour=5,
         minute=15
     )

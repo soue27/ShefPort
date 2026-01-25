@@ -12,7 +12,7 @@ from database.db import export_data_to_excel, count_model_records
 from database.models import (Costumer, Cart, CartItems, Order, OrderItems,
                              CostumerActivity, News, Question)
 from handlers.admin import send_file_to_admin
-from keyboards.admin_kb import get_upload_kb
+from keyboards.admin_kb import get_upload_kb, get_statistic_kb
 from services.statistic import get_statistic_for_past_period, get_statistic_for_week
 from services.updater_db import load_report, update_products_from_df
 
@@ -41,7 +41,7 @@ stat_days = ["За день", "За неделю", "За месяц", "За го
 def build_stat_message(stats: dict, stat_days: list[str], session: Session) -> str:
     model_by_title = {title: model for model, title in MODEL_TITLES.items()}
 
-    lines = ["📈 *Статистика*\n"]
+    lines = ["📈 *Статистика за предыдущий:*\n"]
 
     for model, values in stats.items():
         model_name = model_by_title[model]
@@ -65,6 +65,11 @@ async def get_statistic(callback: CallbackQuery, session: Session):
         MODEL_TITLES[model]: get_statistic_for_past_period(session, model)
         for model in models_stat
     }
-
     message = build_stat_message(stats_prepared, stat_days, session)
     await callback.message.answer(message, parse_mode="Markdown")
+    await callback.message.answer("Для вывода статистики за \nпрошедший период нажмите ↓", reply_markup=get_statistic_kb())
+
+
+@router.callback_query(F.data == "weekly_stat")
+async def get_statistic(callback: CallbackQuery, session: Session, bot: Bot):
+    await get_statistic_for_week(session, bot)

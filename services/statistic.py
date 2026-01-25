@@ -66,7 +66,6 @@ async def get_statistic_for_week(session: Session, bot: Bot):
     start_prev_week = start_week - timedelta(days=7)
     start = datetime.combine(start_prev_week, datetime.min.time())
     end = datetime.combine(start_prev_week + timedelta(days=7), datetime.min.time())
-    print(start, end)
     days = iterate_days(start, end)
     for model in models_stat:
         for day_start, day_end in iterate_days(start, end):
@@ -74,9 +73,6 @@ async def get_statistic_for_week(session: Session, bot: Bot):
             count.append({"date": day_start, "count": c})
         stats[MODEL_TITLES[model]] = count
         count: list[dict] = []
-    print(stats)
-
-
     dates = [entry["date"].date() for entry in next(iter(stats.values()))]
 
     # Создаём пустой DataFrame с индексом = даты
