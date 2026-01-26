@@ -235,9 +235,10 @@ def get_set_admins() -> InlineKeyboardMarkup:
 
 def get_statistic_kb() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="За неделю", callback_data="weekly_stat"),
-                InlineKeyboardButton(text="За месяц", callback_data="monthly_stat"),
-                InlineKeyboardButton(text="За год", callback_data="annual_stat")
+    builder.row(InlineKeyboardButton(text="За прошлую неделю", callback_data="prev_weekly_stat"),
+                InlineKeyboardButton(text="За прошлый месяц", callback_data="prev_monthly_stat"),
+                InlineKeyboardButton(text="За текущую неделю", callback_data="weekly_stat"),
+                InlineKeyboardButton(text="За текущий месяц", callback_data="monthly_stat"),
                 )
     builder.adjust(2)
     return builder.as_markup(one_time_keyboard=True, resize_keyboard=True)

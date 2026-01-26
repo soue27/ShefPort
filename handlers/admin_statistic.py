@@ -13,7 +13,7 @@ from database.models import (Costumer, Cart, CartItems, Order, OrderItems,
                              CostumerActivity, News, Question)
 from handlers.admin import send_file_to_admin
 from keyboards.admin_kb import get_upload_kb, get_statistic_kb
-from services.statistic import get_statistic_for_past_period, get_statistic_for_week
+from services.statistic import get_statistic_for_past_period, get_statistic_for_week, get_statistic_for_month
 from services.updater_db import load_report, update_products_from_df
 
 
@@ -46,7 +46,6 @@ def build_stat_message(stats: dict, stat_days: list[str], session: Session) -> s
     for model, values in stats.items():
         model_name = model_by_title[model]
         count_all = count_model_records(session, model_name)
-        print(count_all)
         lines.append(f"*{model}, всего: {count_all}*")
         for day, value in zip(stat_days, values):
             lines.append(f"  • {day} — {value}")
@@ -67,9 +66,34 @@ async def get_statistic(callback: CallbackQuery, session: Session):
     }
     message = build_stat_message(stats_prepared, stat_days, session)
     await callback.message.answer(message, parse_mode="Markdown")
-    await callback.message.answer("Для вывода статистики за \nпрошедший период нажмите ↓", reply_markup=get_statistic_kb())
+    await callback.message.answer("Для вывода статистики за \nп"
+                                  "рошедший период нажмите ↓", reply_markup=get_statistic_kb()
+    )
+
+
+@router.callback_query(F.data == "prev_weekly_stat")
+async def get_statistic(callback: CallbackQuery, session: Session, bot: Bot):
+    await get_statistic_for_week(session, bot)
+
+
+@router.callback_query(F.data == "prev_monthly_stat")
+async def get_statistic(callback: CallbackQuery, session: Session, bot: Bot):
+    await get_statistic_for_month(session, bot)
 
 
 @router.callback_query(F.data == "weekly_stat")
 async def get_statistic(callback: CallbackQuery, session: Session, bot: Bot):
-    await get_statistic_for_week(session, bot)
+    await get_statistic_for_week(session, bot, actual=True)
+
+
+@router.callback_query(F.data == "prev_monthly_stat")
+async def get_statistic(callback: CallbackQuery, session: Session, bot: Bot):
+    await get_statistic_for_month(session, bot)
+
+
+@router.callback_query(F.data == "monthly_stat")
+async def get_statistic(callback: CallbackQuery, session: Session, bot: Bot):
+    await get_statistic_for_month(session, bot, actual=True)
+
+
+

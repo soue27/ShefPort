@@ -4,18 +4,18 @@ Module services.stat
 This module contains analytics functions for counting various entities over different time periods.
 """
 import os
-from datetime import datetime, timedelta, date, time
-from typing import Union, Type
+from datetime import datetime, timedelta, time
+from typing import Type
+
+import calendar
 
 import pandas as pd
 from aiogram import Bot
-from sqlalchemy import func, and_, extract
-from sqlalchemy.orm import DeclarativeBase, Session
+from sqlalchemy.orm import  Session
 
 from database.models import (Costumer, Cart, Order, CartItems, OrderItems,
                              CostumerActivity, AbstractBase, News, Question)
-from database.db import session, count_model_records, Base
-import zoneinfo
+from database.db import count_model_records
 
 from handlers.admin import send_file_to_admin
 
@@ -33,6 +33,34 @@ MODEL_TITLES = {
     Question: "❓ Поступило вопросов",
 }
 
+
+def save_stat_to_excel(days: list, stats: dict, week: bool) -> str:
+    """Функция сохранения статистики в файл ексель
+    :param days: список с днями статистики для формирования столбца
+    :param stats: словарь с реузльтатами статистики
+    :param week: True если отчет за неделю, False - если за месяц
+    """
+    df = pd.DataFrame(index=days)
+
+    # Заполняем DataFrame по моделям
+    for model_name, entries in stats.items():
+        df[model_name] = [entry["count"] for entry in entries]
+    df["Всего"] = df.sum(axis=1)
+    total_row = df.sum(axis=0)
+    total_row.name = "Всего"
+
+    # Добавляем строку с итогом
+    df = pd.concat([df, total_row.to_frame().T])
+    if week:
+        data = days[0].strftime("%d.%m.%Y")
+        file_path = f"data/statistics_week_{data}.xlsx"
+    else:
+        file_path = f"data/statistics_month_{days[0].month}_{days[0].year}.xlsx"
+    # Сохраняем в Excel
+    df.to_excel(file_path)
+    return file_path
+
+
 def iterate_days(start_date: datetime, end_date: datetime):
     """
     Генератор, который проходит по всем дням от start_date до end_date (включительно),
@@ -46,27 +74,56 @@ def iterate_days(start_date: datetime, end_date: datetime):
         current_date += timedelta(days=1)
 
 
-def get_statistic_for_past_period(session: Session, model: Type[AbstractBase], delta: timedelta = timedelta(days=0)) -> list[int]:
+def get_statistic_for_past_period(
+        session: Session,
+        model: Type[AbstractBase],
+        delta: timedelta = timedelta(days=0)
+) -> list[int]:
+    """Формирование статистики за предыдущий период от текущего дня
+    периоды в днях берутся из stat_days"""
     count = []
     now = datetime.now()
     for day in stat_days:
         past_time = now.date() - timedelta(days=day)
         past_time = datetime.combine(past_time, datetime.min.time())
         now = past_time + timedelta(days=day)
-        count.append(count_model_records(session, model, filters=[model.created_at >= past_time, model.created_at <= now]))
+        count.append(count_model_records(
+            session,
+            model,
+            filters=[model.created_at >= past_time, model.created_at <= now])
+        )
     return count
 
 
-async def get_statistic_for_week(session: Session, bot: Bot):
+async def get_statistic_for_week(session: Session, bot: Bot, actual: bool = False):
+    """
+    Функция для сбора еженедельной статистики.
+    :param session: Сессия для работы с базой данных
+    :type session: sqlalchemy orm Session
+    :param bot: экземпляр бота для отправки файла с результатами статистики
+    :type bot: aiogram Bot
+    :param actual: Если False, то статистика собирается за предыдущую неделю от текущей даты
+    :type actual: bool
+    """
     count: list[dict] = []
     stats: dict[str, list[int]] = {}
+    #Вычисление даты первого дня предыдущей недели
     today = datetime.now().date()
-    week = datetime.now().isocalendar()[1]
-    start_week = datetime.now().date() - timedelta(days=today.isoweekday() -1)
-    start_prev_week = start_week - timedelta(days=7)
-    start = datetime.combine(start_prev_week, datetime.min.time())
-    end = datetime.combine(start_prev_week + timedelta(days=7), datetime.min.time())
-    days = iterate_days(start, end)
+    if not actual:
+        #Определение дат для предыдущей недели
+        start_week = datetime.now().date() - timedelta(days=today.isoweekday() -1)
+        start_prev_week = start_week - timedelta(days=7)
+        # Вычисление даты и времени первого дня предыдущей недели
+        start = datetime.combine(start_prev_week, datetime.min.time())
+        end = datetime.combine(start_prev_week + timedelta(days=7), datetime.min.time())
+    else:
+        # Определение дат для текущей недели
+        start_week = datetime.now().date() - timedelta(days=today.isoweekday() - 1)
+        start_prev_week = start_week
+        # Вычисление даты и времени первого дня предыдущей недели
+        start = datetime.combine(start_prev_week, datetime.min.time())
+        end = datetime.combine(start_prev_week + timedelta(days=7), datetime.min.time())
+    # Формирование словаря с результатами запроса
     for model in models_stat:
         for day_start, day_end in iterate_days(start, end):
             c = count_model_records(session, model, filters=[model.created_at >= day_start, model.created_at <= day_end])
@@ -74,23 +131,42 @@ async def get_statistic_for_week(session: Session, bot: Bot):
         stats[MODEL_TITLES[model]] = count
         count: list[dict] = []
     dates = [entry["date"].date() for entry in next(iter(stats.values()))]
-
+    # Формирование фапйла с результатами статистики.
     # Создаём пустой DataFrame с индексом = даты
-    df = pd.DataFrame(index=dates)
-
-    # Заполняем DataFrame по моделям
-    for model_name, entries in stats.items():
-        df[model_name] = [entry["count"] for entry in entries]
-    df["Всего"] = df.sum(axis=1)
-    total_row = df.sum(axis=0)
-    total_row.name = "Всего"
-
-    # Добавляем строку с итогом
-    df = pd.concat([df, total_row.to_frame().T])
-
-    # Сохраняем в Excel
-    file_path = f"data/statistics_week_{start.date()}.xlsx"
-    df.to_excel(file_path)
+    week = True
+    file_path = save_stat_to_excel(dates, stats, week)
     await send_file_to_admin(file_path, bot)
     os.remove(file_path)
 
+
+async def get_statistic_for_month(session: Session, bot: Bot, actual: bool = False):
+    count: list[dict] = []
+    stats: dict[str, list[int]] = {}
+    month = datetime.now().month
+    if not actual:
+        #Определение месяца для предыдущего периода
+        prev_month = 12 if month == 1 else month - 1
+    else:
+        # Определение месяца для текущего периода
+        prev_month = month
+    if prev_month == 12:
+        year = datetime.now().year - 1
+    else:
+        year = datetime.now().year
+    days_in_month = calendar.monthrange(year, prev_month)[1]
+    days_list = [
+        datetime(year, prev_month, day, 0, 0, 0)
+        for day in range(1, days_in_month + 1)
+    ]
+    for model in models_stat:
+        for day in days_list:
+            c = count_model_records(session, model, filters=[model.created_at >= day, model.created_at <= day + timedelta(days=1)])
+            count.append({"date": day, "count": c})
+        stats[MODEL_TITLES[model]] = count
+        count: list[dict] = []
+    # Формирование фапйла с результатами статистики.
+    # Создаём пустой DataFrame с индексом = даты
+    week = False
+    file_path = save_stat_to_excel(days_list, stats, week)
+    await send_file_to_admin(file_path, bot)
+    os.remove(file_path)
