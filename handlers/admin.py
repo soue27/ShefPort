@@ -546,7 +546,7 @@ async def send_file_to_admin(file_path: str, bot: Bot, tg_id: int = SUPERADMIN_I
         user_id = tg_id
         file_path = file_path
         document = FSInputFile(file_path)
-        await bot.send_document(chat_id=user_id, document=document, caption="Необходимо добавить в БД данные позиции")
+        await bot.send_document(chat_id=user_id, document=document, caption="Файл подготовлен")
     except Exception as e:
         logger.exception(f"Ошибка отправки файла в 'send_file_to_admin': {e}")
         return

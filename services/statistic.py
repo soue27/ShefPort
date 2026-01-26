@@ -95,7 +95,7 @@ def get_statistic_for_past_period(
     return count
 
 
-async def get_statistic_for_week(session: Session, bot: Bot, current: bool = False):
+async def get_statistic_for_week(session: Session, bot: Bot, current: bool = False, tg_id: int = None):
     """
     Функция для сбора еженедельной статистики.
     :param session: Сессия для работы с базой данных
@@ -104,6 +104,8 @@ async def get_statistic_for_week(session: Session, bot: Bot, current: bool = Fal
     :type bot: aiogram Bot
     :param current: Если False, то статистика собирается за предыдущую неделю от текущей даты
     :type current: bool
+    :param tg_id: Если имеется значение, то файл отправляется по тг ай ди, статистика была запрошена по кнопке
+    :type tg_id: int
     """
     count: list[dict] = []
     stats: dict[str, list[int]] = {}
@@ -135,11 +137,14 @@ async def get_statistic_for_week(session: Session, bot: Bot, current: bool = Fal
     # Создаём пустой DataFrame с индексом = даты
     week = True
     file_path = save_stat_to_excel(dates, stats, week)
-    await send_file_to_admin(file_path, bot)
+    if tg_id:
+        await send_file_to_admin(file_path, bot, tg_id)
+    else:
+        await send_file_to_admin(file_path, bot)
     os.remove(file_path)
 
 
-async def get_statistic_for_month(session: Session, bot: Bot, current: bool = False):
+async def get_statistic_for_month(session: Session, bot: Bot, current: bool = False, tg_id: int = None):
     count: list[dict] = []
     stats: dict[str, list[int]] = {}
     month = datetime.now().month
@@ -168,5 +173,8 @@ async def get_statistic_for_month(session: Session, bot: Bot, current: bool = Fa
     # Создаём пустой DataFrame с индексом = даты
     week = False
     file_path = save_stat_to_excel(days_list, stats, week)
-    await send_file_to_admin(file_path, bot)
+    if tg_id:
+        await send_file_to_admin(file_path, bot, tg_id)
+    else:
+        await send_file_to_admin(file_path, bot)
     os.remove(file_path)

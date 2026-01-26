@@ -70,30 +70,35 @@ async def get_statistic(callback: CallbackQuery, session: Session):
                                   "рошедший период нажмите ↓", reply_markup=get_statistic_kb()
     )
 
-
 @router.callback_query(F.data == "prev_weekly_stat")
 async def get_statistic(callback: CallbackQuery, session: Session, bot: Bot):
-    await get_statistic_for_week(session, bot)
+    tg_id = callback.from_user.id
+    await get_statistic_for_week(session, bot, tg_id=tg_id)
 
 
 @router.callback_query(F.data == "prev_monthly_stat")
 async def get_statistic(callback: CallbackQuery, session: Session, bot: Bot):
-    await get_statistic_for_month(session, bot)
+    tg_id = callback.from_user.id
+    await get_statistic_for_month(session, bot, tg_id=tg_id)
+    print(callback.from_user.id)
 
 
 @router.callback_query(F.data == "weekly_stat")
 async def get_statistic(callback: CallbackQuery, session: Session, bot: Bot):
-    await get_statistic_for_week(session, bot, current=True)
+    tg_id = callback.from_user.id
+    await get_statistic_for_week(session, bot, current=True, tg_id=tg_id)
 
 
 @router.callback_query(F.data == "prev_monthly_stat")
 async def get_statistic(callback: CallbackQuery, session: Session, bot: Bot):
-    await get_statistic_for_month(session, bot)
+    tg_id = callback.from_user.id
+    await get_statistic_for_month(session, bot, tg_id=tg_id)
 
 
 @router.callback_query(F.data == "monthly_stat")
 async def get_statistic(callback: CallbackQuery, session: Session, bot: Bot):
-    await get_statistic_for_month(session, bot, current=True)
+    tg_id = callback.from_user.id
+    await get_statistic_for_month(session, bot, current=True, tg_id=tg_id)
 
 
 
