@@ -83,7 +83,7 @@ async def get_statistic(callback: CallbackQuery, session: Session, bot: Bot):
 
 @router.callback_query(F.data == "weekly_stat")
 async def get_statistic(callback: CallbackQuery, session: Session, bot: Bot):
-    await get_statistic_for_week(session, bot, actual=True)
+    await get_statistic_for_week(session, bot, current=True)
 
 
 @router.callback_query(F.data == "prev_monthly_stat")
@@ -93,7 +93,7 @@ async def get_statistic(callback: CallbackQuery, session: Session, bot: Bot):
 
 @router.callback_query(F.data == "monthly_stat")
 async def get_statistic(callback: CallbackQuery, session: Session, bot: Bot):
-    await get_statistic_for_month(session, bot, actual=True)
+    await get_statistic_for_month(session, bot, current=True)
 
 
 

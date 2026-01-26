@@ -95,21 +95,21 @@ def get_statistic_for_past_period(
     return count
 
 
-async def get_statistic_for_week(session: Session, bot: Bot, actual: bool = False):
+async def get_statistic_for_week(session: Session, bot: Bot, current: bool = False):
     """
     Функция для сбора еженедельной статистики.
     :param session: Сессия для работы с базой данных
     :type session: sqlalchemy orm Session
     :param bot: экземпляр бота для отправки файла с результатами статистики
     :type bot: aiogram Bot
-    :param actual: Если False, то статистика собирается за предыдущую неделю от текущей даты
-    :type actual: bool
+    :param current: Если False, то статистика собирается за предыдущую неделю от текущей даты
+    :type current: bool
     """
     count: list[dict] = []
     stats: dict[str, list[int]] = {}
     #Вычисление даты первого дня предыдущей недели
     today = datetime.now().date()
-    if not actual:
+    if not current:
         #Определение дат для предыдущей недели
         start_week = datetime.now().date() - timedelta(days=today.isoweekday() -1)
         start_prev_week = start_week - timedelta(days=7)
@@ -139,11 +139,11 @@ async def get_statistic_for_week(session: Session, bot: Bot, actual: bool = Fals
     os.remove(file_path)
 
 
-async def get_statistic_for_month(session: Session, bot: Bot, actual: bool = False):
+async def get_statistic_for_month(session: Session, bot: Bot, current: bool = False):
     count: list[dict] = []
     stats: dict[str, list[int]] = {}
     month = datetime.now().month
-    if not actual:
+    if not current:
         #Определение месяца для предыдущего периода
         prev_month = 12 if month == 1 else month - 1
     else:
