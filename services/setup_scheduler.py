@@ -6,7 +6,7 @@ from services.backup_jobs import backup_and_upload
 from services.mail_checker import check_mail_and_download
 from loguru import logger
 
-from services.statistic import get_statistic_for_week
+from services.statistic import get_statistic_for_week, get_statistic_for_month
 
 
 async def start_sheduler(bot: Bot):
@@ -37,6 +37,14 @@ async def start_sheduler(bot: Bot):
         day_of_week="mon",
         hour=5,
         minute=15
+    )
+    scheduler.add_job(
+        get_statistic_for_month,
+        trigger="cron",
+        args=(session, bot),
+        day="1",
+        hour=5,
+        minute=20
     )
     scheduler.start()
     pass
