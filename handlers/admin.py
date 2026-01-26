@@ -24,6 +24,7 @@
     например: @router.message(Command("команда")) или @router.callback_query(F.data == "действие")
 """
 import asyncio
+from typing import Union, List
 
 from aiogram import Router, F, Bot
 from aiogram.enums import ParseMode
@@ -535,7 +536,7 @@ async def show_mailing_confirm(callback: CallbackQuery, state: FSMContext, bot: 
         await state.clear()
 
 
-async def send_file_to_admin(file_path: str, bot: Bot, tg_id: int = SUPERADMIN_ID):
+async def send_file_to_admin(file_path: str, bot: Bot, tg_id: Union[int, List[int]] = SUPERADMIN_ID):
     """Send file to superadmin.
     Args:
         file_path (str): Path to file.
@@ -543,10 +544,11 @@ async def send_file_to_admin(file_path: str, bot: Bot, tg_id: int = SUPERADMIN_I
         tg_id: List - списко супердаминов из env
     """
     try:
-        user_id = tg_id
+        tg_ids = tg_id if isinstance(tg_id, list) else [tg_id]
         file_path = file_path
         document = FSInputFile(file_path)
-        await bot.send_document(chat_id=user_id, document=document, caption="Файл подготовлен")
+        for admin_id in tg_ids:
+            await bot.send_document(chat_id=admin_id, document=document, caption="Файл подготовлен")
     except Exception as e:
         logger.exception(f"Ошибка отправки файла в 'send_file_to_admin': {e}")
         return
