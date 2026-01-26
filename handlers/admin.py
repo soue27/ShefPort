@@ -541,7 +541,7 @@ async def send_file_to_admin(file_path: str, bot: Bot, tg_id: Union[int, List[in
     Args:
         file_path (str): Path to file.
         bot (Bot): Bot instance.
-        tg_id: List - списко супердаминов из env
+        tg_id: Union[int, List[int]] - списко супердаминов из env
     """
     try:
         tg_ids = tg_id if isinstance(tg_id, list) else [tg_id]
