@@ -49,7 +49,12 @@ async def export_table(callback: CallbackQuery, session: Session):
     :param callback: CallbackQuery
     :param session: Session
     """
-    table_name = callback.data.split("_")[1]
+    if len(callback.data.split("_")) == 2:
+        table_name = callback.data.split("_")[1]
+    else:
+        table_name = callback.data.split("_", 1)[1]
+
+    print(table_name)
     if table_name == "back":
         await callback.message.delete()
         return
@@ -57,6 +62,7 @@ async def export_table(callback: CallbackQuery, session: Session):
         file_path = f"data/{table_name} {datetime.now().strftime("%d-%m-%y")}.xlsx"
         export_data_to_excel(session, table_name, file_path)
         document = FSInputFile(file_path)
+        print(document)
         logger.info(f"Выгрузка для {callback.from_user.id} данных из таблицы {table_name} успешно")
     except Exception as e:
         logger.exception(f"Ошибка при выгрузке данных из таблицы {table_name} для {callback.from_user.id}: {e}")
