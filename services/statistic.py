@@ -149,6 +149,24 @@ async def get_statistic_for_week(session: Session, bot: Bot, current: bool = Fal
 
 
 async def get_statistic_for_month(session: Session, bot: Bot, current: bool = False, tg_id: int = None):
+    """
+           Retrieve and send monthly statistics to a Telegram bot.
+
+           This function fetches statistical data for either the current month or the previous month,
+          depending on the 'current' flag. The statistics can be filtered by a specific Telegram user ID
+          if provided. The retrieved data is then formatted and sent to the specified bot.
+
+          Args:
+         session (Session): Database session for querying statistical data.
+         bot (Bot): Telegram bot instance used to send the statistics.
+         current (bool, optional): Flag to determine whether to fetch current month's data (True)
+             or previous month's data (False). Defaults to False.
+         tg_id (int, optional): Specific Telegram user ID to filter statistics for.
+                 If None, statistics for all users are retrieved. Defaults to None.
+
+         Returns:
+         None: This function sends the statistics directly to the bot and does not return a value.
+    """
     count: list[dict] = []
     stats: dict[str, list[int]] = {}
     month = datetime.now().month
@@ -162,7 +180,9 @@ async def get_statistic_for_month(session: Session, bot: Bot, current: bool = Fa
         year = datetime.now().year - 1
     else:
         year = datetime.now().year
+    #Расчет количества дней в месяце
     days_in_month = calendar.monthrange(year, prev_month)[1]
+    #Формирование списка дней месяца для
     days_list = [
         datetime(year, prev_month, day, 0, 0, 0)
         for day in range(1, days_in_month + 1)
@@ -189,6 +209,19 @@ async def get_statistic_for_month(session: Session, bot: Bot, current: bool = Fa
 
 
 async def get_statistic_for_activity(session: Session, bot: Bot, start_day: datetime, end_day: datetime):
+    """
+        Calculates statistics for the previous month.
+
+        :param session: SQLAlchemy session object.
+        :type session: Session
+        :param bot: Telegram bot object.
+        :type bot: Bot
+        :param start_day: Начальная дата для статистики.
+        :type start_day: datetime
+        :param end_day: Конечная дата для статистики.
+        :type end_day: datetime
+    """
+    # Словарь с ключевыми словами для поиска в БД
     key_words: dict = {
         "🐠 Категории товаров": "Открытий каталога",
         "📝 Написать сообщение": "Направлено сообщений в магазин",
@@ -206,14 +239,14 @@ async def get_statistic_for_activity(session: Session, bot: Bot, start_day: date
     }
 
     results = []
-
+    #Формируем фильтры для поиска
     for keyword, description in key_words.items():
         filters = [CostumerActivity.created_at >= start_day,
                   CostumerActivity.created_at <= end_day,
                    CostumerActivity.payload.like(f"%{keyword}%")
         ]
 
-        count = count_model_records(session=session, model=CostumerActivity, filters=filters)
+        count = count_model_records(session=session, model=CostumerActivity, filters=filters) # подсчет количества
 
         results.append({
             "Ключевое слово": keyword,
@@ -221,6 +254,7 @@ async def get_statistic_for_activity(session: Session, bot: Bot, start_day: date
             "Количество": count
         })
 
+    # Сохранение в датафрейм и затем в ексель
     df = pd.DataFrame(results)
 
     file_path = (
