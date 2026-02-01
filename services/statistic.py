@@ -133,15 +133,19 @@ async def get_statistic_for_week(session: Session, bot: Bot, current: bool = Fal
         stats[MODEL_TITLES[model]] = count
         count: list[dict] = []
     dates = [entry["date"].date() for entry in next(iter(stats.values()))]
+    file_path_activity = await get_statistic_for_activity(session, bot, start_day=start, end_day=end)
     # Формирование фапйла с результатами статистики.
     # Создаём пустой DataFrame с индексом = даты
     week = True
     file_path = save_stat_to_excel(dates, stats, week)
     if tg_id:
         await send_file_to_admin(file_path, bot, tg_id)
+        await send_file_to_admin(file_path_activity, bot, tg_id)
     else:
         await send_file_to_admin(file_path, bot)
+        await send_file_to_admin(file_path_activity, bot)
     os.remove(file_path)
+    os.remove(file_path_activity)
 
 
 async def get_statistic_for_month(session: Session, bot: Bot, current: bool = False, tg_id: int = None):
@@ -171,10 +175,59 @@ async def get_statistic_for_month(session: Session, bot: Bot, current: bool = Fa
         count: list[dict] = []
     # Формирование фапйла с результатами статистики.
     # Создаём пустой DataFrame с индексом = даты
+    file_path_activity = await get_statistic_for_activity(session, bot, start_day=days_list[0], end_day=days_list[-1])
     week = False
     file_path = save_stat_to_excel(days_list, stats, week)
     if tg_id:
         await send_file_to_admin(file_path, bot, tg_id)
+        await send_file_to_admin(file_path_activity, bot, tg_id)
     else:
         await send_file_to_admin(file_path, bot)
+        await send_file_to_admin(file_path_activity, bot)
     os.remove(file_path)
+    os.remove(file_path_activity)
+
+
+async def get_statistic_for_activity(session: Session, bot: Bot, start_day: datetime, end_day: datetime):
+    key_words: dict = {
+        "🐠 Категории товаров": "Открытий каталога",
+        "📝 Написать сообщение": "Направлено сообщений в магазин",
+        "🔎 Поиск товара": "Количество поиска товаров",
+        "🛍  Мои заказы": "Нажатия меню Мои заказы",
+        "🛒 Моя корзина": "Нажатия меню Моя корзина",
+        "cart": "Действий внутри корзины",
+        "cartitem": "Действия с товарами в корзины",
+        "order": "Действий внутри заказа",
+        "orderitem": "Действия с товарами в заказа",
+        "catalog": "Действий в каталоге",
+        "category": "Выбрано категорий в каталоге",
+        "in_stock": "Выбрано показов товара в Наличии",
+        "show_all": "Выбрано показов всех товаров"
+    }
+
+    results = []
+
+    for keyword, description in key_words.items():
+        filters = [CostumerActivity.created_at >= start_day,
+                  CostumerActivity.created_at <= end_day,
+                   CostumerActivity.payload.like(f"%{keyword}%")
+        ]
+
+        count = count_model_records(session=session, model=CostumerActivity, filters=filters)
+
+        results.append({
+            "Ключевое слово": keyword,
+            "Описание": description,
+            "Количество": count
+        })
+
+    df = pd.DataFrame(results)
+
+    file_path = (
+        f"data/activity_statistic_"
+        f"{start_day:%Y-%m-%d}_{end_day:%Y-%m-%d}.xlsx"
+    )
+
+    df.to_excel(file_path, index=False)
+
+    return file_path
