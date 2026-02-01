@@ -13,7 +13,7 @@ import json
 
 import pandas as pd
 from loguru import logger
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 from database.models import Product, Category  # твоя модель
 
@@ -75,10 +75,14 @@ def update_notfound_to_bd(df, session):
 
 
 def update_products_from_df(df: pd.DataFrame, session: Session):
-
+    if df.empty:
+        logger.warning("DataFrame пуст — обнуление остатков пропущено")
+        return 0
     not_found = [] # список артикулов, которых нет в БД
     not_found_rows = []     # строки для отдельного файла
     count = 0
+
+    articles_from_df = set(df["Код"].astype(str).tolist())
 
     for _, row in df.iterrows():
         kod = str(row["Код"])
@@ -97,10 +101,18 @@ def update_products_from_df(df: pd.DataFrame, session: Session):
         product.price = price
         product.ostatok = ostatok
         count += 1
+    #Обнуление остатков
 
+    stmt_zero = (
+        update(Product)
+        .where(~Product.article.in_(articles_from_df))
+        .values(ostatok=0)
+    )
+    result = session.execute(stmt_zero)
     # сохраняем изменения в БД
     session.commit()
     logger.info(f"В БД обновлено {count} товаров")
+    logger.info(f"Обнулены остатки у {result.rowcount} товаров")
 
     if len(not_found) > 0:
         # Загружаем Excel и сразу читаем столбец "Код" как строку
