@@ -4,7 +4,6 @@ from aiogram import BaseMiddleware
 from aiogram.types import Message, CallbackQuery
 from sqlalchemy.orm import Session
 
-from database.db import get_costumer_id
 from database.models import CostumerActivity
 
 
