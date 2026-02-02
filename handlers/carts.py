@@ -1,3 +1,4 @@
+from gc import callbacks
 from typing import Sequence, Any
 
 from aiogram import Router, F, types, Bot
@@ -26,7 +27,8 @@ from database.db import (
     get_entity_by_user_id,
     get_all_categories, get_entity_id_by_items_id,
 )
-from database.models import Product, Cart, CartItems
+from database.models import Product, Cart, CartItems, DeliveryMode
+from handlers.costumer import delivery_message
 from keyboards.carts_kb import (
     item_action_kb,
     delete_confirm_kb,
@@ -396,7 +398,7 @@ async def delete_item_cancel(call: CallbackQuery):
 # -------------------------------------------------------
 
 @router.callback_query(F.data.startswith("Cart_confirm"))
-async def confirm_cart_handler(call: CallbackQuery):
+async def confirm_cart_handler(call: CallbackQuery, delivery_available: bool = False, delivery_mode: DeliveryMode | None = None):
     _, cart_id = call.data.split(":")
     try:
         cart_id = int(cart_id)
@@ -418,12 +420,21 @@ async def confirm_cart_handler(call: CallbackQuery):
             f"  в 'confirm_cart_handler' выполнен неуспешно: {e}"
         )
         return
+
     await call.message.answer(
         f"✅ Ваш заказ принят!\n"
         f"Номер заказа: {cart.id}\n"
         f"Всего позиций: {int(cart.total_items)}\n"
         f"Мы направим Вам информацию о готовности."
     )
+    mode = session.get(DeliveryMode, 1)
+    print(mode.start_at, mode.end_at)
+    if delivery_available or delivery_mode:
+        await call.answer(
+            f"🚚 Доставка сегодня доступна с "
+            f"{mode.start_at:%H:%M} до {mode.end_at:%H:%M}!",
+            show_alert=True
+        )
     # Удаляем все сообщения корзины
     user_id = call.from_user.id
     if user_id in user_cart_messages:

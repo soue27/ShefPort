@@ -10,8 +10,9 @@ It also provides a function for saving user data to database.
 """
 import os
 import re
-from datetime import datetime
+from datetime import datetime, date
 from typing import Type, Optional, List, Any
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 from aiogram.types import CallbackQuery
@@ -28,7 +29,8 @@ from sqlalchemy.pool import QueuePool
 from sqlalchemy.util import ellipses_string
 
 from data.config import DB_URL
-from database.models import Base, Costumer, Product, Category, Question, News, Cart, CartItems, OrderItems
+from database.models import Base, Costumer, Product, Category, Question, News, Cart, CartItems, OrderItems, \
+    DeliveryMode, CostumerActivity
 from services.search import normalize_text
 
 engine = create_engine(DB_URL,
@@ -733,6 +735,32 @@ def update_prooduct_field(session: Session, product_id, field, value):
     #session.commit()
 
 
-#***********************************************************
-#Сатистика
-#**********************************************************
+def is_first_user_action_today(session: Session, chat_id: int, today: date | None = None) -> bool:
+    """Проверяет, есть ли у пользователя уже активность за сегодня"""
+    if today is None:
+        today = date.today()
+
+    stmt = (
+        session.query(CostumerActivity.id)
+        .filter(
+            CostumerActivity.chat_id == chat_id,
+            CostumerActivity.activity_date == today,
+        )
+        .limit(1)
+    )
+
+    result = stmt.first()
+    return result is None
+
+
+def is_delivery_available(mode: DeliveryMode, now: datetime) -> bool:
+    """Проверка доступности доставки по разовому интервалу"""
+    ekb_tz = ZoneInfo("Asia/Yekaterinburg")
+    start = mode.start_at
+    end = mode.end_at
+    if start.tzinfo is None:
+        start = start.replace(tzinfo=ekb_tz)
+    if end.tzinfo is None:
+        end = end.replace(tzinfo=ekb_tz)
+
+    return start <= now <= end

@@ -1,7 +1,11 @@
 # middlewares/db.py
+from datetime import date, datetime
+
 from aiogram import BaseMiddleware
 from sqlalchemy.orm import Session
 from database.db import engine
+from database.models import CostumerActivity, DeliveryMode
+
 
 class DBSessionMiddleware(BaseMiddleware):
 
@@ -15,3 +19,5 @@ class DBSessionMiddleware(BaseMiddleware):
             raise
         finally:
             session.close()
+
+

@@ -27,7 +27,8 @@ from database.db import (
     get_entity_by_user_id,
     get_all_categories, get_entity_id_by_items_id,
 )
-from database.models import OrderItems, Product, Order
+from database.models import OrderItems, Product, Order, DeliveryMode
+from handlers.costumer import delivery_message
 from keyboards.carts_kb import (
     item_action_kb,
     cart_main_kb,
@@ -429,7 +430,6 @@ async def confirm_order_handler(call: CallbackQuery):
         f"Всего позиций: {int(order.total_items)}\n"
         f"Мы направим Вам информацию о готовности."
     )
-
     # Удаляем все сообщения корзины
     user_id = call.from_user.id
     if user_id in user_order_messages:

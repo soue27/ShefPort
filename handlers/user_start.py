@@ -13,13 +13,14 @@
 
 
 from aiogram import Router, F, types
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart
 
 from database.db import session, save_costumer, get_random_photo, get_all_categories
 
 from loguru import logger
 
+from database.models import DeliveryMode
 from keyboards.startkb import startkb
 from keyboards.mainkb import get_main_kb
 
@@ -105,6 +106,24 @@ async def set_news(callback: types.CallbackQuery):
         return
     await callback.message.answer_photo(photo=photo[0], caption=f"Спасибо, что Вы с нами!!! \n на фото <b>'{photo[1]}'</b>", reply_markup=get_main_kb())
     await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == "delivery_alert_info")
+async def handle_delivery_alert_info(callback: CallbackQuery):
+    #Получаем режим доставки (можно из кэша или БД)
+    mode = session.get(DeliveryMode, 1)
+    if mode and mode.is_enabled:
+        # Показываем настоящий алерт в центре
+        await callback.answer(
+            f"🚚 Доставка сегодня доступна с "
+            f"{mode.start_at:%H:%M} до {mode.end_at:%H:%M}!",
+            show_alert=True
+        )
+        # Опционально: удаляем сообщение с кнопкой
+        await callback.message.delete()
+    else:
+        await callback.answer("Доставка сейчас недоступна", show_alert=True)
+
 
 
 

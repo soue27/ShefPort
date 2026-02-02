@@ -238,4 +238,11 @@ class Order(AbstractBase):
         return f"<Order(id={self.id}, user_id={self.user_id}, items={len(self.items)})>"
 
 
+class DeliveryMode(AbstractBase):
+    __tablename__ = 'delivery_mode'
+    is_enabled = Column(Boolean, default=False)
+    start_at = Column(DateTime(timezone=True), nullable=False)
+    end_at = Column(DateTime(timezone=True), nullable=False)
+
+
 

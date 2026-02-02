@@ -4,15 +4,17 @@ Module handlers.costumer
 This module contains handlers for customer interactions in the Telegram bot.
 It handles product categories display, product search, and related commands.
 """
+from typing import Union
 
 from aiogram import Router, F, types, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 
 from loguru import logger
 
 from database.db import session, get_all_categories, search_products, save_question, get_all_admin, get_costumer_id
+from database.models import DeliveryMode
 
 from handlers.product_helpers import start_category_products
 from handlers.search_helpers import (
@@ -52,14 +54,39 @@ class SendMessage(StatesGroup):
     user_message = State()
 
 
+async def delivery_message(event: Union[Message, CallbackQuery], delivery_available: bool, delivery_mode) -> None:
+    if not delivery_available or not delivery_mode:
+        return
+
+    text = (
+        f"🚚 Доставка сегодня доступна с "
+        f"{delivery_mode.start_at:%H:%M} до {delivery_mode.end_at:%H:%M}\n\n"
+    )
+
+    # Если это CallbackQuery, используем answer
+    if isinstance(event, CallbackQuery):
+        # Показываем alert
+        await event.answer(
+            text=text,
+        )
+    # Если это Message, просто отправляем в чат
+    elif isinstance(event, Message):
+        await event.answer(
+            text=text,
+        )
+
+
 @router.message(F.text == '🐠 Категории товаров')
-async def show_categories(message: Message):
+async def show_categories(message: Message, delivery_available: bool = False, delivery_mode: DeliveryMode | None = None):
     """Handles the 'Categories' button click and displays a list of product categories.
     Args:
         message (Message): The incoming message from the user.
+        delivery_available:
+        delivery_mode:
     Returns:
         None: Sends a message with a list of categories to the user.
     """
+    await delivery_message(message, delivery_available, delivery_mode)
     await message.answer("Выберите режим показа товаров:", reply_markup=show_in_stock_kb())
 
 
@@ -86,14 +113,17 @@ async def show_product_bycategory(callback: types.CallbackQuery, state: FSMConte
 
 
 @router.message(F.text == '🔎 Поиск товара')
-async def show_search(message: Message, state: FSMContext):
+async def show_search(message: Message, state: FSMContext , delivery_available: bool = False, delivery_mode: DeliveryMode | None = None):
     """Initiates the product search process.
     Args:
         message (Message): The incoming message from the user.
         state (FSMContext): The current state of the conversation.
+        delivery_available:
+        delivery_mode:
         Returns:
         None: Prompts the user to enter a search query.
     """
+    await delivery_message(message, delivery_available, delivery_mode)
     await message.answer("Введите запрос для поиска товара:")
     logger.info(f"пользователь {message.from_user.id} перешел в стейт SearchProduct.search_word в coctumer.show_search")
     await state.set_state(SearchProduct.search_word)
@@ -141,9 +171,10 @@ register_search_handlers(router)
 
 
 @router.message(F.text == '📝 Написать сообщение')
-async def send_message(message: Message, state: FSMContext):
+async def send_message(message: Message, state: FSMContext, delivery_available: bool = False, delivery_mode: DeliveryMode | None = None):
     """Обраьотка кнопки Напистаь сообщение, запуск FSM
      :param """
+    await delivery_message(message, delivery_available, delivery_mode)
     await message.answer("Введите Ваше сообщение:")
     logger.info(
         f"пользователь {message.from_user.id} перешел в стейт SendMessage.user_message в coctumer.send_message"

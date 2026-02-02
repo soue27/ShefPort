@@ -10,8 +10,9 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from data.config import (BOT_TOKEN, YANDEX_TOKEN, REMOTE_FOLDER,
                          DB_NAME, DB_USER, DB_HOST, DB_PORT, DB_PASSWORD, DB_BACKUP_DIR)
 from handlers import user_start, costumer, products, catalog, admin, orders, carts, admin_recovery, admin_analitics, \
-    admin_product, admin_setadmin, admin_statistic
+    admin_product, admin_setadmin, admin_statistic, admin_delivery
 from middleware.db import DBSessionMiddleware
+from middleware.delivery_notification import DeliveryNotificationMiddleware
 from middleware.user_activity import UserActivityMiddleware
 from services.backup_db import PostrgresBackup
 from services.setup_log import setup_logging
@@ -55,6 +56,7 @@ async def main():
     dp.include_router(admin_setadmin.router)
     dp.include_router(admin_statistic.router)
     dp.include_router(admin.router)
+    dp.include_router(admin_delivery.router)
     routers = [
         user_start.router,
         products.router,
@@ -67,13 +69,18 @@ async def main():
         admin_product.router,
         admin_setadmin.router,
         admin_statistic.router,
-        admin.router
+        admin.router,
+        admin_delivery.router,
     ]
+
     for r in routers:
         r.message.middleware(DBSessionMiddleware())
         r.callback_query.middleware(DBSessionMiddleware())
+        r.message.middleware(DeliveryNotificationMiddleware())
+        r.callback_query.middleware(DeliveryNotificationMiddleware())
         r.message.middleware(UserActivityMiddleware())
         r.callback_query.middleware(UserActivityMiddleware())
+
 
     await start_sheduler(bot)
     logger.info("Бот запущен")

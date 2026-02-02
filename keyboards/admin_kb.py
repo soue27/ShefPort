@@ -31,6 +31,8 @@ def main_kb() -> InlineKeyboardMarkup:
         InlineKeyboardButton(text="Рассылка", callback_data="mailing"),
         InlineKeyboardButton(text="Upload to Excel", callback_data="upload_xlsx"),
         InlineKeyboardButton(text="Get log file", callback_data="get_log"),
+        InlineKeyboardButton(text="Delivery On", callback_data="delivery_on"),
+        InlineKeyboardButton(text="Delivery Off", callback_data="delivery_off"),
         InlineKeyboardButton(text="Загрузить остатки", callback_data="load_ostatki"),
         InlineKeyboardButton(text="Статистика", callback_data="statistic"),
         InlineKeyboardButton(text="Посмотреть админов", callback_data="view_admins"),
