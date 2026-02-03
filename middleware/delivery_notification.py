@@ -38,8 +38,8 @@ class DeliveryNotificationMiddleware(BaseMiddleware):
             delivery_available = is_delivery_available(mode, now)
             data["delivery_available"] = delivery_available
             data["delivery_mode"] = mode
-            mode.start_at = mode.start_at + timedelta(hours=5)
-            mode.end_at = mode.end_at + timedelta(hours=5)
+            # mode.start_at = mode.start_at + timedelta(hours=5)
+            # mode.end_at = mode.end_at + timedelta(hours=5)
             # Если доставка доступна и это первое действие пользователя
             if delivery_available and is_first_user_action_today(session, chat_id, today):
                 # Показываем всплывающее сообщение с кнопкой

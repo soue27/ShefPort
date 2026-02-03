@@ -59,8 +59,8 @@ async def delivery_message(event: Union[Message, CallbackQuery], delivery_availa
     """Функция для вывода времени доставки"""
     if not delivery_available or not delivery_mode:
         return
-    delivery_mode.start_at = delivery_mode.start_at + timedelta(hours=5)
-    delivery_mode.end_at = delivery_mode.end_at + timedelta(hours=5)
+    # delivery_mode.start_at = delivery_mode.start_at
+    # delivery_mode.end_at = delivery_mode.end_at
     text = (
         f"🚚 Доставка сегодня доступна с "
         f"{delivery_mode.start_at:%H:%M} до {delivery_mode.end_at:%H:%M}\n\n"
