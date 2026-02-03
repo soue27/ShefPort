@@ -1,4 +1,4 @@
-from datetime import datetime, date, timezone
+from datetime import datetime, date, timezone, timedelta
 
 from aiogram import Router, F, Bot
 from aiogram.fsm.context import FSMContext
@@ -38,11 +38,11 @@ async def get_delivery_time(message: Message, state: FSMContext):
     start = datetime.strptime(
         f"{date.today()} {start.replace('.', ':')}",
         "%Y-%m-%d %H:%M"
-    )
+    ) - timedelta(hours=5)
     end = datetime.strptime(
         f"{date.today()} {end.replace('.', ':')}",
         "%Y-%m-%d %H:%M"
-    )
+    ) - timedelta(hours=5)
     mode = session.get(DeliveryMode, 1)
     if not mode:
         mode = DeliveryMode(id=1, is_enabled=True)
