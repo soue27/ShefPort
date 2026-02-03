@@ -65,7 +65,6 @@ class DeliveryNotificationMiddleware(BaseMiddleware):
                         f"🚚 Доставка сегодня доступна с {mode.start_at:%H:%M} до {mode.end_at:%H:%M}!",
                         reply_markup=kb
                     )
-
             return await handler(event, data)
 
         finally:

@@ -38,11 +38,11 @@ async def get_delivery_time(message: Message, state: FSMContext):
     start = datetime.strptime(
         f"{date.today()} {start.replace('.', ':')}",
         "%Y-%m-%d %H:%M"
-    ).replace(tzinfo=timezone.utc)
+    )
     end = datetime.strptime(
         f"{date.today()} {end.replace('.', ':')}",
         "%Y-%m-%d %H:%M"
-    ).replace(tzinfo=timezone.utc)
+    )
     mode = session.get(DeliveryMode, 1)
     if not mode:
         mode = DeliveryMode(id=1, is_enabled=True)
@@ -50,7 +50,6 @@ async def get_delivery_time(message: Message, state: FSMContext):
     mode.start_at = start  # или строка: f"{start_time:%H:%M}"
     mode.end_at = end # или строка: f"{end_time:%H:%M}"
     mode.is_enabled = True
-    session.execute(text("SET TIME ZONE 'UTC'"))
     session.commit()
     await message.answer(f"Доставка включена в период c {start} до {end} часов")
     await state.clear()
