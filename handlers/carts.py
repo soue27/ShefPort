@@ -1,6 +1,7 @@
 from datetime import timedelta
 from gc import callbacks
 from typing import Sequence, Any
+from zoneinfo import ZoneInfo
 
 from aiogram import Router, F, types, Bot
 from aiogram.enums import ParseMode
@@ -428,9 +429,10 @@ async def confirm_cart_handler(call: CallbackQuery, delivery_available: bool = F
         f"Всего позиций: {int(cart.total_items)}\n"
         f"Мы направим Вам информацию о готовности."
     )
+    ekb_tz = ZoneInfo("Asia/Yekaterinburg")
     mode = session.get(DeliveryMode, 1)
-    # mode.start_at = mode.start_at + timedelta(hours=5)
-    # mode.end_at = mode.end_at + timedelta(hours=5)
+    mode.start_at = mode.start_at.astimezone(ekb_tz)
+    mode.end_at = mode.end_at.astimezone(ekb_tz)
     if delivery_available or delivery_mode:
         await call.answer(
             f"🚚 Доставка сегодня доступна с "
