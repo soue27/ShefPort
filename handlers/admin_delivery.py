@@ -5,7 +5,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import CallbackQuery, Message
 from sqlalchemy.orm import Session
-
+from sqlalchemy import text
 from database.db import count_model_records, session
 from database.models import (Costumer, Cart, CartItems, Order, OrderItems,
                              CostumerActivity, News, Question, DeliveryMode)
@@ -50,7 +50,7 @@ async def get_delivery_time(message: Message, state: FSMContext):
     mode.start_at = start  # или строка: f"{start_time:%H:%M}"
     mode.end_at = end # или строка: f"{end_time:%H:%M}"
     mode.is_enabled = True
-    session.execute("SET TIME ZONE 'UTC'")
+    session.execute(text("SET TIME ZONE 'UTC'"))
     session.commit()
     await message.answer(f"Доставка включена в период c {start} до {end} часов")
     await state.clear()
