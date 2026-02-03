@@ -20,15 +20,15 @@ class DeliveryNotificationMiddleware(BaseMiddleware):
     async def __call__(self, handler, event: TelegramObject, data: dict):
         session = Session(engine)
         try:
-            ekb_tz = ZoneInfo("Asia/Yekaterinburg")
+            # ekb_tz = ZoneInfo("Asia/Yekaterinburg")
             user = getattr(event, "from_user", None)
             if not user:
                 return await handler(event, data)
 
             chat_id = user.id
             today = date.today()
-            now = datetime.now(tz=ekb_tz)
-
+            # now = datetime.now(tz=ekb_tz)
+            now = datetime.now()
             # Получаем текущий режим доставки
             mode = session.get(DeliveryMode, 1)
             if not mode or not mode.is_enabled:

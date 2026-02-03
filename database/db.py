@@ -10,7 +10,7 @@ It also provides a function for saving user data to database.
 """
 import os
 import re
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from typing import Type, Optional, List, Any
 from zoneinfo import ZoneInfo
 
@@ -755,12 +755,18 @@ def is_first_user_action_today(session: Session, chat_id: int, today: date | Non
 
 def is_delivery_available(mode: DeliveryMode, now: datetime) -> bool:
     """Проверка доступности доставки по разовому интервалу"""
-    ekb_tz = ZoneInfo("Asia/Yekaterinburg")
+    # ekb_tz = ZoneInfo("Asia/Yekaterinburg")
     start = mode.start_at
     end = mode.end_at
     if start.tzinfo is None:
-        start = start.replace(tzinfo=ekb_tz)
+        start = start.replace(tzinfo=timezone.utc)
     if end.tzinfo is None:
-        end = end.replace(tzinfo=ekb_tz)
+        end = end.replace(tzinfo=timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    # if start.tzinfo is None:
+    #     start = start.replace(tzinfo=ekb_tz)
+    # if end.tzinfo is None:
+    #     end = end.replace(tzinfo=ekb_tz)
 
     return start <= now <= end

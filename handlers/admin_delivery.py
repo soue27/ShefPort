@@ -47,8 +47,10 @@ async def get_delivery_time(message: Message, state: FSMContext):
     if not mode:
         mode = DeliveryMode(id=1, is_enabled=True)
         session.add(mode)
-    mode.start_at = start - timedelta(hours=5)  # или строка: f"{start_time:%H:%M}"
-    mode.end_at = end - timedelta(hours=5) # или строка: f"{end_time:%H:%M}"
+    #mode.start_at = start - timedelta(hours=5)  # или строка: f"{start_time:%H:%M}"
+    mode.start_at = start
+    #mode.end_at = end - timedelta(hours=5) # или строка: f"{end_time:%H:%M}"
+    mode.end_at = end
     mode.is_enabled = True
     session.commit()
     await message.answer(f"Доставка включена в период c {start} до {end} часов")
