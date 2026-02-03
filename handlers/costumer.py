@@ -4,6 +4,7 @@ Module handlers.costumer
 This module contains handlers for customer interactions in the Telegram bot.
 It handles product categories display, product search, and related commands.
 """
+from datetime import timedelta
 from typing import Union
 
 from aiogram import Router, F, types, Bot
@@ -55,9 +56,11 @@ class SendMessage(StatesGroup):
 
 
 async def delivery_message(event: Union[Message, CallbackQuery], delivery_available: bool, delivery_mode) -> None:
+    """Функция для вывода времени доставки"""
     if not delivery_available or not delivery_mode:
         return
-
+    delivery_mode.start_at = delivery_mode.start_at + timedelta(hours=5)
+    delivery_mode.end_at = delivery_mode.end_at + timedelta(hours=5)
     text = (
         f"🚚 Доставка сегодня доступна с "
         f"{delivery_mode.start_at:%H:%M} до {delivery_mode.end_at:%H:%M}\n\n"

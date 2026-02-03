@@ -1,3 +1,4 @@
+from datetime import timedelta
 from gc import callbacks
 from typing import Sequence, Any
 
@@ -428,7 +429,8 @@ async def confirm_cart_handler(call: CallbackQuery, delivery_available: bool = F
         f"Мы направим Вам информацию о готовности."
     )
     mode = session.get(DeliveryMode, 1)
-    print(mode.start_at, mode.end_at)
+    mode.start_at = mode.start_at + timedelta(hours=5)
+    mode.end_at = mode.end_at + timedelta(hours=5)
     if delivery_available or delivery_mode:
         await call.answer(
             f"🚚 Доставка сегодня доступна с "
