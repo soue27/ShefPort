@@ -6,6 +6,7 @@ It handles product categories display, product search, and related commands.
 """
 from datetime import timedelta
 from typing import Union
+from zoneinfo import ZoneInfo
 
 from aiogram import Router, F, types, Bot
 from aiogram.fsm.context import FSMContext
@@ -57,10 +58,11 @@ class SendMessage(StatesGroup):
 
 async def delivery_message(event: Union[Message, CallbackQuery], delivery_available: bool, delivery_mode) -> None:
     """Функция для вывода времени доставки"""
+    ekb_tz = ZoneInfo("Asia/Yekaterinburg")
     if not delivery_available or not delivery_mode:
         return
-    # delivery_mode.start_at = delivery_mode.start_at
-    # delivery_mode.end_at = delivery_mode.end_at
+    delivery_mode.start_at = delivery_mode.start_at.astimezone(ekb_tz)
+    delivery_mode.end_at = delivery_mode.end_at.astimezone(ekb_tz)
     text = (
         f"🚚 Доставка сегодня доступна с "
         f"{delivery_mode.start_at:%H:%M} до {delivery_mode.end_at:%H:%M}\n\n"
