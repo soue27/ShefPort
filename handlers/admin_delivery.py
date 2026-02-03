@@ -53,7 +53,7 @@ async def get_delivery_time(message: Message, state: FSMContext):
     # mode.end_at = end
     mode.is_enabled = True
     session.commit()
-    await message.answer(f"Доставка включена в период c {start} до {end} часов")
+    await message.answer(f"Доставка включена в период c {start} до {end} часов {datetime.now()}")
     await state.clear()
 
 
